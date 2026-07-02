@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { width: 100%; min-height: 100svh; }
+}
+
+@layer utilities {
+  .input-cell {
+    @apply w-full bg-transparent border-0 outline-0 text-sm px-2 py-1 focus:bg-white focus:ring-1 focus:ring-amber-400 rounded;
+  }
+}
