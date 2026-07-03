@@ -4,6 +4,7 @@ import { Calculator } from 'lucide-react';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
 import { calcDish, simulateByPrice, simulateByMargin, formatCurrency, formatPct } from '../../utils/calculations';
+import { currencySymbol } from '../../lib/currency';
 import { MarginBadge } from '../ui/MarginBadge';
 import type { Lang } from '../../types';
 
@@ -73,12 +74,15 @@ export function SimulatorPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* If I charge X → what margin? */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <p className="text-sm font-medium text-gray-700 mb-3">{t('simulator.chargingLabel')}...</p>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm text-gray-500">{t('common.currency')}</span>
+                <span className="text-sm text-gray-500">{currencySymbol()}</span>
                 <input
-                  type="number" min="0" step="0.01"
+                  type="number"
+                  min="0"
+                  step="0.01"
                   value={chargePrice}
                   onChange={e => setChargePrice(e.target.value)}
                   className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-right font-mono"
@@ -101,11 +105,15 @@ export function SimulatorPage() {
               )}
             </div>
 
+            {/* I want X% margin → what price? */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <p className="text-sm font-medium text-gray-700 mb-3">{t('simulator.wantMarginLabel')}...</p>
               <div className="flex items-center gap-2 mb-4">
                 <input
-                  type="number" min="0" max="99" step="1"
+                  type="number"
+                  min="0"
+                  max="99"
+                  step="1"
                   value={wantMargin}
                   onChange={e => setWantMargin(e.target.value)}
                   className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-right font-mono"

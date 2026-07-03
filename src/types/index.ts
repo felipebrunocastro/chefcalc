@@ -1,5 +1,6 @@
 export type Lang = 'pt' | 'en' | 'es';
 export type LocalizedString = { pt: string; en: string; es: string };
+
 export type UnitPurchase = 'kg' | 'g' | 'L' | 'ml' | 'un';
 
 export interface Ingredient {
@@ -8,7 +9,7 @@ export interface Ingredient {
   fornecedor?: string;
   unidadeCompra: UnitPurchase;
   precoCompra: number;
-  fatorCorrecao: number;
+  fatorCorrecao: number; // 1.0 = no loss, 1.15 = 15% loss
   createdAt: number;
 }
 
@@ -36,7 +37,9 @@ export interface Dish {
   rendimentoPorcoes: number;
   itens: RecipeItem[];
   etapas: PrepStep[];
-  custoMaoObra: number;
+  custoMaoObra: number;          // custo de mão de obra calculado (opcional)
+  valorHoraMaoObra?: number;     // valor pago por hora ao cozinheiro
+  tempoPreparoMin?: number;      // tempo de preparo em minutos (para o custo de mão de obra)
   despesasFixasPct: number;
   margemLucroPct: number;
   modeloPrecificacao: PricingModel;

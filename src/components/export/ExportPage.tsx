@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FileDown, Download, Upload, Printer } from 'lucide-react';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
-import { calcDish, calcItemCost, formatCurrency } from '../../utils/calculations';
+import { calcDish, calcItemCost, laborCost, formatCurrency } from '../../utils/calculations';
 import { exportBackup, importBackup } from '../../db';
 import type { Lang, Dish, Ingredient } from '../../types';
 
@@ -117,7 +117,7 @@ function PrintableSheet({ dish, ingredients, type, lang }: {
           </table>
           <div className="mt-4 border-t pt-3 grid grid-cols-2 gap-2 text-sm">
             <span className="text-gray-600">Custo insumos:</span><span className="text-right font-mono">{formatCurrency(calc.custoInsumos)}</span>
-            <span className="text-gray-600">Mão de obra:</span><span className="text-right font-mono">{formatCurrency(dish.custoMaoObra)}</span>
+            <span className="text-gray-600">Mão de obra:</span><span className="text-right font-mono">{formatCurrency(laborCost(dish))}</span>
             <span className="font-semibold">Custo total/porção:</span><span className="text-right font-mono font-semibold">{formatCurrency(calc.custoTotalPorcao)}</span>
             <span className="font-bold text-amber-700">Preço sugerido:</span><span className="text-right font-mono font-bold text-amber-700">{formatCurrency(calc.precoVendaSugerido)}</span>
             <span className="text-gray-600">CMV %:</span><span className="text-right font-mono">{calc.cmvPct.toFixed(1)}%</span>
@@ -141,7 +141,10 @@ export function ExportPage() {
 
   const dish = useMemo(() => dishes.find(d => d.id === selectedId), [dishes, selectedId]);
 
-  const handlePrint = () => { setShowPreview(true); setTimeout(() => window.print(), 300); };
+  const handlePrint = () => {
+    setShowPreview(true);
+    setTimeout(() => window.print(), 300);
+  };
 
   const handleCSV = () => {
     if (!dish) return;
@@ -185,54 +188,99 @@ export function ExportPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4 space-y-4">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">{t('export.selectDish')}</label>
-          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <select
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          >
             <option value="">—</option>
-            {dishes.map(d => (<option key={d.id} value={d.id}>{d.nome[lang] || d.nome.pt}</option>))}
+            {dishes.map(d => (
+              <option key={d.id} value={d.id}>{d.nome[lang] || d.nome.pt}</option>
+            ))}
           </select>
         </div>
+
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">{t('export.type')}</label>
           <div className="flex gap-2 flex-wrap">
             {(['operational', 'managerial', 'both'] as ExportType[]).map(type => (
-              <button key={type} onClick={() => setExportType(type)} className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${exportType === type ? 'border-amber-500 bg-amber-50 text-amber-700 font-medium' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              <button
+                key={type}
+                onClick={() => setExportType(type)}
+                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                  exportType === type
+                    ? 'border-amber-500 bg-amber-50 text-amber-700 font-medium'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
                 {t(`export.${type}`)}
               </button>
             ))}
           </div>
         </div>
+
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">{t('export.language')}</label>
           <div className="flex gap-2">
             {(['pt', 'en', 'es'] as Lang[]).map(l => (
-              <button key={l} onClick={() => setExportLang(l)} className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${exportLang === l ? 'border-amber-500 bg-amber-50 text-amber-700 font-medium' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              <button
+                key={l}
+                onClick={() => setExportLang(l)}
+                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                  exportLang === l
+                    ? 'border-amber-500 bg-amber-50 text-amber-700 font-medium'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
                 {l.toUpperCase()}
               </button>
             ))}
           </div>
         </div>
+
         <div className="flex flex-wrap gap-3 pt-2">
-          <button onClick={handlePrint} disabled={!dish} className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors">
-            <Printer size={15} />{t('export.generatePDF')}
+          <button
+            onClick={handlePrint}
+            disabled={!dish}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            <Printer size={15} />
+            {t('export.generatePDF')}
           </button>
-          <button onClick={handleCSV} disabled={!dish} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 disabled:opacity-40 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-            <Download size={15} />{t('export.exportCSV')}
+          <button
+            onClick={handleCSV}
+            disabled={!dish}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 disabled:opacity-40 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Download size={15} />
+            {t('export.exportCSV')}
           </button>
         </div>
       </div>
 
+      {/* Backup section */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Backup</h2>
         <div className="flex flex-wrap gap-3">
-          <button onClick={handleBackupExport} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-            <Download size={15} />{t('export.backupExport')}
+          <button
+            onClick={handleBackupExport}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Download size={15} />
+            {t('export.backupExport')}
           </button>
-          <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-            <Upload size={15} />{t('export.backupImport')}
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Upload size={15} />
+            {t('export.backupImport')}
           </button>
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleBackupImport} />
         </div>
       </div>
 
+      {/* Print preview (hidden, shown on print) */}
       {showPreview && dish && (
         <div className="print-only fixed inset-0 z-50 bg-white overflow-auto">
           <PrintableSheet dish={dish} ingredients={ingredients} type={exportType} lang={exportLang} />

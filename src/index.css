@@ -1,16 +1,36 @@
 @import "tailwindcss";
 
 @layer base {
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  #root { width: 100%; min-height: 100svh; }
+
+  #root {
+    width: 100%;
+    min-height: 100svh;
+  }
 }
 
 @layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
   .input-cell {
     @apply w-full bg-transparent border-0 outline-0 text-sm px-2 py-1 focus:bg-white focus:ring-1 focus:ring-amber-400 rounded;
   }

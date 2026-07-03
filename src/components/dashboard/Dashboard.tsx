@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Plus, Edit2, Trash2, ChefHat } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, ChefHat, Copy } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
 import { calcDish, formatCurrency, formatPct } from '../../utils/calculations';
@@ -14,12 +15,29 @@ interface Props {
 
 export function Dashboard({ onNavigate }: Props) {
   const { t, i18n } = useTranslation();
-  const { dishes, loading, remove } = useDishes();
+  const { dishes, loading, save, remove } = useDishes();
   const { ingredients } = useIngredients();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Dish | null>(null);
   const lang = i18n.language as 'pt' | 'en' | 'es';
+
+  const duplicate = async (dish: Dish) => {
+    const now = Date.now();
+    const suffix = ` (${t('dashboard.copySuffix')})`;
+    const copy: Dish = {
+      ...dish,
+      id: uuidv4(),
+      nome: {
+        pt: dish.nome.pt + suffix,
+        en: dish.nome.en + suffix,
+        es: dish.nome.es + suffix,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    await save(copy);
+  };
 
   const categories = useMemo(() => {
     const cats = new Set(dishes.map(d => d.categoria).filter(Boolean));
@@ -97,6 +115,7 @@ export function Dashboard({ onNavigate }: Props) {
         </div>
       ) : (
         <>
+          {/* Desktop table */}
           <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
@@ -126,10 +145,25 @@ export function Dashboard({ onNavigate }: Props) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
-                        <button onClick={() => onNavigate('dish', dish.id)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title={t('dashboard.editDish')}>
+                        <button
+                          onClick={() => onNavigate('dish', dish.id)}
+                          className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+                          title={t('dashboard.editDish')}
+                        >
                           <Edit2 size={14} />
                         </button>
-                        <button onClick={() => setDeleteTarget(dish)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title={t('dashboard.deleteDish')}>
+                        <button
+                          onClick={() => duplicate(dish)}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title={t('dashboard.duplicateDish')}
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(dish)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title={t('dashboard.deleteDish')}
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -140,6 +174,7 @@ export function Dashboard({ onNavigate }: Props) {
             </table>
           </div>
 
+          {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {calculated.map(({ dish, custoTotalPorcao, precoVendaSugerido, cmvPct, margemStatus }) => (
               <div key={dish.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
@@ -165,11 +200,25 @@ export function Dashboard({ onNavigate }: Props) {
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-gray-100">
-                  <button onClick={() => onNavigate('dish', dish.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100">
+                  <button
+                    onClick={() => onNavigate('dish', dish.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100"
+                  >
                     <Edit2 size={13} /> {t('dashboard.editDish')}
                   </button>
-                  <button onClick={() => setDeleteTarget(dish)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm text-red-500 bg-red-50 rounded-lg hover:bg-red-100">
-                    <Trash2 size={13} /> {t('dashboard.deleteDish')}
+                  <button
+                    onClick={() => duplicate(dish)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                    title={t('dashboard.duplicateDish')}
+                  >
+                    <Copy size={13} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(dish)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-red-500 bg-red-50 rounded-lg hover:bg-red-100"
+                    title={t('dashboard.deleteDish')}
+                  >
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>

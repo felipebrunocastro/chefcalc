@@ -1,26 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../db';
+import { getDishes, saveDish, deleteDish } from '../data/repo';
+import { useAuth } from './useAuth';
 import type { Dish } from '../types';
 
 export function useDishes() {
+  const { user } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const all = await db.dishes.orderBy('updatedAt').reverse().toArray();
-    setDishes(all);
+    if (!user) { setDishes([]); setLoading(false); return; }
+    try {
+      setDishes(await getDishes());
+    } catch {
+      setDishes([]);
+    }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
   const save = useCallback(async (dish: Dish) => {
-    await db.dishes.put(dish);
+    await saveDish(dish);
     await load();
   }, [load]);
 
   const remove = useCallback(async (id: string) => {
-    await db.dishes.delete(id);
+    await deleteDish(id);
     await load();
   }, [load]);
 

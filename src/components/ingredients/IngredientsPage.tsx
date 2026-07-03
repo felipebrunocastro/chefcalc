@@ -9,8 +9,16 @@ import type { Ingredient, UnitPurchase, Lang } from '../../types';
 
 const UNITS: UnitPurchase[] = ['kg', 'g', 'L', 'ml', 'un'];
 
-const EMPTY: Omit<Ingredient, 'id' | 'createdAt'> = {
-  nome: { pt: '', en: '', es: '' },
+interface FormState {
+  nome: string;
+  fornecedor: string;
+  unidadeCompra: UnitPurchase;
+  precoCompra: number;
+  fatorCorrecao: number;
+}
+
+const EMPTY: FormState = {
+  nome: '',
   fornecedor: '',
   unidadeCompra: 'kg',
   precoCompra: 0,
@@ -21,8 +29,9 @@ export function IngredientsPage() {
   const { t, i18n } = useTranslation();
   const { ingredients, save, remove } = useIngredients();
   const [search, setSearch] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ingredient | null>(null);
-  const [form, setForm] = useState<Omit<Ingredient, 'id' | 'createdAt'>>(EMPTY);
+  const [form, setForm] = useState<FormState>(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null);
   const lang = i18n.language as Lang;
 
@@ -34,20 +43,44 @@ export function IngredientsPage() {
     });
   }, [ingredients, search, lang]);
 
-  const openNew = () => { setEditing(null); setForm(EMPTY); };
+  const openNew = () => {
+    setEditing(null);
+    setForm(EMPTY);
+    setFormOpen(true);
+  };
 
   const openEdit = (ing: Ingredient) => {
     setEditing(ing);
-    setForm({ nome: ing.nome, fornecedor: ing.fornecedor || '', unidadeCompra: ing.unidadeCompra, precoCompra: ing.precoCompra, fatorCorrecao: ing.fatorCorrecao });
+    setForm({
+      nome: ing.nome[lang] || ing.nome.pt,
+      fornecedor: ing.fornecedor || '',
+      unidadeCompra: ing.unidadeCompra,
+      precoCompra: ing.precoCompra,
+      fatorCorrecao: ing.fatorCorrecao,
+    });
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditing(null);
+    setForm(EMPTY);
   };
 
   const handleSave = async () => {
-    if (!form.nome.pt && !form.nome.en && !form.nome.es) return;
+    if (!form.nome.trim()) return;
     const now = Date.now();
-    const ing: Ingredient = { id: editing?.id || uuidv4(), createdAt: editing?.createdAt || now, ...form };
+    const ing: Ingredient = {
+      id: editing?.id || uuidv4(),
+      createdAt: editing?.createdAt || now,
+      nome: { pt: form.nome, en: form.nome, es: form.nome },
+      fornecedor: form.fornecedor,
+      unidadeCompra: form.unidadeCompra,
+      precoCompra: form.precoCompra,
+      fatorCorrecao: form.fatorCorrecao,
+    };
     await save(ing);
-    setEditing(null);
-    setForm(EMPTY);
+    closeForm();
   };
 
   const unitCost = (ing: Ingredient): number => {
@@ -60,68 +93,92 @@ export function IngredientsPage() {
     return `/${baseUnit}`;
   };
 
-  const showForm = editing !== null || form.nome.pt !== '' || form.nome.en !== '' || form.nome.es !== '';
-
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t('ingredients.title')}</h1>
-        <button onClick={openNew} className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
+        <button
+          onClick={openNew}
+          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+        >
           <Plus size={16} />
           {t('ingredients.add')}
         </button>
       </div>
 
-      {(showForm || editing !== null) && (
+      {/* Form */}
+      {formOpen && (
         <div className="bg-white rounded-xl border border-amber-200 shadow-sm p-5 mb-6">
           <h2 className="text-sm font-semibold text-amber-700 mb-4 uppercase tracking-wide">
             {editing ? t('ingredients.edit') : t('ingredients.add')}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.name')} (PT)</label>
-              <input value={form.nome.pt} onChange={e => setForm(f => ({ ...f, nome: { ...f.nome, pt: e.target.value } }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="ex: Tomate" />
+              <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.name')}</label>
+              <input
+                autoFocus
+                value={form.nome}
+                onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder={t('ingredients.namePlaceholder')}
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.name')} (EN)</label>
-              <input value={form.nome.en} onChange={e => setForm(f => ({ ...f, nome: { ...f.nome, en: e.target.value } }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="ex: Tomato" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.name')} (ES)</label>
-              <input value={form.nome.es} onChange={e => setForm(f => ({ ...f, nome: { ...f.nome, es: e.target.value } }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="ex: Tomate" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.supplier')}</label>
-              <input value={form.fornecedor} onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input
+                value={form.fornecedor}
+                onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
             </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.purchaseUnit')}</label>
-              <select value={form.unidadeCompra} onChange={e => setForm(f => ({ ...f, unidadeCompra: e.target.value as UnitPurchase }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+              <select
+                value={form.unidadeCompra}
+                onChange={e => setForm(f => ({ ...f, unidadeCompra: e.target.value as UnitPurchase }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.purchasePrice')}</label>
-              <input type="number" min="0" step="0.01" value={form.precoCompra} onChange={e => setForm(f => ({ ...f, precoCompra: parseFloat(e.target.value) || 0 }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input
+                type="number" min="0" step="0.01"
+                value={form.precoCompra}
+                onChange={e => setForm(f => ({ ...f, precoCompra: parseFloat(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.correctionFactor')}</label>
-              <input type="number" min="1" step="0.01" value={form.fatorCorrecao} onChange={e => setForm(f => ({ ...f, fatorCorrecao: parseFloat(e.target.value) || 1 }))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input
+                type="number" min="1" step="0.01"
+                value={form.fatorCorrecao}
+                onChange={e => setForm(f => ({ ...f, fatorCorrecao: parseFloat(e.target.value) || 1 }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
             </div>
           </div>
           <p className="text-xs text-gray-400 mb-4">{t('ingredients.correctionHelp')}</p>
           <div className="flex gap-2">
             <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">{t('ingredients.save')}</button>
-            <button onClick={() => { setEditing(null); setForm(EMPTY); }} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('ingredients.cancel')}</button>
+            <button onClick={closeForm} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('ingredients.cancel')}</button>
           </div>
         </div>
       )}
 
+      {/* Search */}
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('ingredients.search')} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t('ingredients.search')}
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+        />
       </div>
 
       {filtered.length === 0 ? (
@@ -131,6 +188,7 @@ export function IngredientsPage() {
         </div>
       ) : (
         <>
+          {/* Desktop table */}
           <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
@@ -165,6 +223,7 @@ export function IngredientsPage() {
             </table>
           </div>
 
+          {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {filtered.map(ing => (
               <div key={ing.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
@@ -199,7 +258,11 @@ export function IngredientsPage() {
       )}
 
       {deleteTarget && (
-        <ConfirmDialog message={t('ingredients.confirmDelete')} onConfirm={() => { remove(deleteTarget.id); setDeleteTarget(null); }} onCancel={() => setDeleteTarget(null)} />
+        <ConfirmDialog
+          message={t('ingredients.confirmDelete')}
+          onConfirm={() => { remove(deleteTarget.id); setDeleteTarget(null); }}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );
