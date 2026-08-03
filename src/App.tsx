@@ -4,8 +4,11 @@ import { ChefHat } from 'lucide-react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { IngredientsPage } from './components/ingredients/IngredientsPage';
+import { ShoppingListPage } from './components/shopping/ShoppingListPage';
 import { DishPage } from './components/dish/DishPage';
 import { SimulatorPage } from './components/simulator/SimulatorPage';
+import { ConverterPage } from './components/converter/ConverterPage';
+import { ConverterFab } from './components/converter/ConverterFab';
 import { ExportPage } from './components/export/ExportPage';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { Paywall } from './components/auth/Paywall';
@@ -51,9 +54,12 @@ function AppInner() {
     <Layout current={view} onNavigate={v => navigate(v)} onCurrencyChange={forceUpdate}>
       {view === 'dashboard' && <Dashboard onNavigate={navigate} />}
       {view === 'ingredients' && <IngredientsPage />}
+      {view === 'shopping' && <ShoppingListPage />}
       {view === 'dish' && <DishPage dishId={editingDishId} onNavigate={navigate} />}
       {view === 'simulator' && <SimulatorPage />}
+      {view === 'converter' && <ConverterPage />}
       {view === 'export' && <ExportPage />}
+      <ConverterFab />
     </Layout>
   );
 }

@@ -38,6 +38,10 @@
     "supplier": "Supplier",
     "purchaseUnit": "Purchase unit",
     "purchasePrice": "Purchase price",
+    "packagePrice": "Package price",
+    "unitsPerPackage": "Units per package",
+    "packageContains": "Package contains",
+    "costPerUnit": "Cost per unit",
     "correctionFactor": "Correction factor",
     "correctionHelp": "E.g.: 1.15 = 15% loss (peeling, evaporation)",
     "save": "Save",
@@ -63,10 +67,11 @@
     "prepTime": "Prep time (min)",
     "fixedExpensesPct": "Fixed expenses (%)",
     "fixedExpensesHelp": "Surcharge on cost to cover rent, utilities, etc.",
-    "marginPct": "Desired profit margin (%)",
+    "marginPct": "Profit margin (% over cost)",
+    "profitMargin": "Profit margin (over cost)",
     "pricingModel": "Pricing model",
-    "markup": "Simple markup",
-    "foodcost": "Food Cost",
+    "markup": "Markup (cost + %)",
+    "foodcost": "Food Cost (margin on sale)",
     "manualPrice": "Manual price (overrides calculation)",
     "tabs": {
       "operational": "Operational",
@@ -126,9 +131,15 @@
   "units": {
     "kg": "kg",
     "g": "g",
+    "lb": "lb (pound)",
+    "oz": "oz (ounce)",
     "L": "L",
     "ml": "ml",
-    "un": "un"
+    "gal": "gallon (US)",
+    "cup": "cup",
+    "floz": "fl oz",
+    "un": "unit",
+    "pacote": "pack"
   },
   "common": {
     "currency": "$",
@@ -170,5 +181,44 @@
     "feat2": "Cloud-saved data, access from anywhere",
     "feat3": "Technical sheets in PT, EN, ES + PDF export",
     "feat4": "Price simulator and margin indicators"
+  },
+  "shopping": {
+    "title": "Shopping List & Prices",
+    "navShort": "Shopping",
+    "subtitle": "Update prices here and dish costs adjust automatically.",
+    "price": "Price",
+    "usedIn": "In dishes",
+    "dishes": "dishes",
+    "buyQty": "Buy",
+    "estimatedTotal": "Estimated shopping total",
+    "autoUpdate": "When you change a price, every dish using that ingredient recalculates automatically."
+  },
+  "converter": {
+    "title": "Weights & Measures Converter",
+    "navShort": "Converter",
+    "value": "Value",
+    "from": "From",
+    "to": "To",
+    "swap": "Swap",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "clear": "Clear",
+    "result": "Result",
+    "system": "System",
+    "searchIngredient": "Search ingredient...",
+    "selectIngredient": "Pick an ingredient to convert weight ↔ volume",
+    "history": "History",
+    "favorites": "Favorites",
+    "noHistory": "No conversions yet.",
+    "equivalences": "Quick equivalences",
+    "quickTool": "Quick converter",
+    "categories": { "weight": "Weight", "volume": "Volume", "length": "Length", "temperature": "Temperature", "ingredient": "Ingredient" },
+    "systems": { "metric": "Metric", "us": "Imperial (US)", "uk": "Imperial (UK)" },
+    "units": {
+      "mg": "mg", "g": "g", "kg": "kg", "oz": "oz (ounce)", "lb": "lb (pound)",
+      "ml": "mL", "L": "L", "tsp": "Teaspoon", "tbsp": "Tablespoon", "dessertspoon": "Dessert spoon", "coffeespoon": "Coffee spoon", "cup": "Cup", "floz": "Fluid ounce", "pint": "Pint", "quart": "Quart", "gallon": "Gallon",
+      "mm": "mm", "cm": "cm", "m": "m", "in": "Inch",
+      "C": "Celsius (°C)", "F": "Fahrenheit (°F)", "K": "Kelvin (K)"
+    }
   }
 }

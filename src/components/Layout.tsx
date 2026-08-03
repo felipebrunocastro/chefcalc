@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Package, ChefHat, Calculator, FileDown, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ChefHat, Calculator, Scale, FileDown, Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { CurrencySwitcher } from './ui/CurrencySwitcher';
@@ -16,8 +16,10 @@ interface Props {
 const NAV_ITEMS = [
   { view: 'dashboard' as AppView, icon: LayoutDashboard, key: 'nav.dashboard' },
   { view: 'ingredients' as AppView, icon: Package, key: 'nav.ingredients' },
+  { view: 'shopping' as AppView, icon: ShoppingCart, key: 'shopping.navShort' },
   { view: 'dish' as AppView, icon: ChefHat, key: 'nav.newDish' },
   { view: 'simulator' as AppView, icon: Calculator, key: 'nav.simulator' },
+  { view: 'converter' as AppView, icon: Scale, key: 'converter.navShort' },
   { view: 'export' as AppView, icon: FileDown, key: 'nav.export' },
 ];
 

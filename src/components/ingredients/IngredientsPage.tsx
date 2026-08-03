@@ -4,16 +4,19 @@ import { Plus, Edit2, Trash2, Search, Package } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useIngredients } from '../../hooks/useIngredients';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { formatCurrency } from '../../utils/calculations';
-import type { Ingredient, UnitPurchase, Lang } from '../../types';
+import { formatCurrency, unitCostOf } from '../../utils/calculations';
+import type { Ingredient, UnitPurchase, PackageContentUnit, Lang } from '../../types';
 
-const UNITS: UnitPurchase[] = ['kg', 'g', 'L', 'ml', 'un'];
+const UNITS: UnitPurchase[] = ['kg', 'g', 'lb', 'oz', 'L', 'ml', 'gal', 'cup', 'floz', 'un', 'pacote'];
+const PACKAGE_CONTENT_UNITS: PackageContentUnit[] = ['un', 'g', 'kg', 'lb', 'oz', 'ml', 'L'];
 
 interface FormState {
   nome: string;
   fornecedor: string;
   unidadeCompra: UnitPurchase;
   precoCompra: number;
+  unidadesPorPacote: number;
+  pacoteConteudoUnidade: PackageContentUnit;
   fatorCorrecao: number;
 }
 
@@ -22,6 +25,8 @@ const EMPTY: FormState = {
   fornecedor: '',
   unidadeCompra: 'kg',
   precoCompra: 0,
+  unidadesPorPacote: 1,
+  pacoteConteudoUnidade: 'un',
   fatorCorrecao: 1,
 };
 
@@ -56,6 +61,8 @@ export function IngredientsPage() {
       fornecedor: ing.fornecedor || '',
       unidadeCompra: ing.unidadeCompra,
       precoCompra: ing.precoCompra,
+      unidadesPorPacote: ing.unidadesPorPacote || 1,
+      pacoteConteudoUnidade: ing.pacoteConteudoUnidade || 'un',
       fatorCorrecao: ing.fatorCorrecao,
     });
     setFormOpen(true);
@@ -77,20 +84,13 @@ export function IngredientsPage() {
       fornecedor: form.fornecedor,
       unidadeCompra: form.unidadeCompra,
       precoCompra: form.precoCompra,
+      unidadesPorPacote: form.unidadeCompra === 'pacote' ? form.unidadesPorPacote : undefined,
+      pacoteConteudoUnidade: form.unidadeCompra === 'pacote' ? form.pacoteConteudoUnidade : undefined,
+      precoAtualizadoEm: editing?.precoCompra !== form.precoCompra ? now : editing?.precoAtualizadoEm,
       fatorCorrecao: form.fatorCorrecao,
     };
     await save(ing);
     closeForm();
-  };
-
-  const unitCost = (ing: Ingredient): number => {
-    const divisor = ing.unidadeCompra === 'kg' || ing.unidadeCompra === 'L' ? 1000 : 1;
-    return (ing.precoCompra / divisor) * ing.fatorCorrecao;
-  };
-
-  const unitCostLabel = (ing: Ingredient): string => {
-    const baseUnit = ing.unidadeCompra === 'kg' ? 'g' : ing.unidadeCompra === 'L' ? 'ml' : ing.unidadeCompra;
-    return `/${baseUnit}`;
   };
 
   return (
@@ -140,11 +140,13 @@ export function IngredientsPage() {
                 onChange={e => setForm(f => ({ ...f, unidadeCompra: e.target.value as UnitPurchase }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               >
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                {UNITS.map(u => <option key={u} value={u}>{t(`units.${u}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.purchasePrice')}</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                {form.unidadeCompra === 'pacote' ? t('ingredients.packagePrice') : t('ingredients.purchasePrice')}
+              </label>
               <input
                 type="number" min="0" step="0.01"
                 value={form.precoCompra}
@@ -162,6 +164,41 @@ export function IngredientsPage() {
               />
             </div>
           </div>
+
+          {form.unidadeCompra === 'pacote' && (() => {
+            const preview = unitCostOf({
+              id: '', nome: { pt: '', en: '', es: '' }, createdAt: 0, fatorCorrecao: form.fatorCorrecao,
+              unidadeCompra: 'pacote', precoCompra: form.precoCompra,
+              unidadesPorPacote: form.unidadesPorPacote, pacoteConteudoUnidade: form.pacoteConteudoUnidade,
+            });
+            return (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <label className="block text-xs font-medium text-amber-700 mb-1">{t('ingredients.packageContains')}</label>
+                <div className="flex gap-2 max-w-sm">
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={form.unidadesPorPacote}
+                    onChange={e => setForm(f => ({ ...f, unidadesPorPacote: parseFloat(e.target.value) || 0 }))}
+                    className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    placeholder="ex: 10"
+                  />
+                  <select
+                    value={form.pacoteConteudoUnidade}
+                    onChange={e => setForm(f => ({ ...f, pacoteConteudoUnidade: e.target.value as PackageContentUnit }))}
+                    className="px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                  >
+                    {PACKAGE_CONTENT_UNITS.map(u => <option key={u} value={u}>{t(`units.${u}`)}</option>)}
+                  </select>
+                </div>
+                {form.precoCompra > 0 && form.unidadesPorPacote > 0 && (
+                  <p className="text-xs text-amber-700 mt-2">
+                    {t('ingredients.costPerUnit')}: <strong>{formatCurrency(preview.value)}{preview.label}</strong>
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
           <p className="text-xs text-gray-400 mb-4">{t('ingredients.correctionHelp')}</p>
           <div className="flex gap-2">
             <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">{t('ingredients.save')}</button>
@@ -198,7 +235,6 @@ export function IngredientsPage() {
                   <th className="text-center px-4 py-3 font-medium text-gray-600">{t('ingredients.purchaseUnit')}</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">{t('ingredients.purchasePrice')}</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-600">{t('ingredients.correctionFactor')}</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-600">{t('ingredients.unitCost')}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -207,10 +243,11 @@ export function IngredientsPage() {
                   <tr key={ing.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{ing.nome[lang] || ing.nome.pt}</td>
                     <td className="px-4 py-3 text-gray-500">{ing.fornecedor || '—'}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{ing.unidadeCompra}</td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-700">{formatCurrency(ing.precoCompra)}/{ing.unidadeCompra}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">
+                      {t(`units.${ing.unidadeCompra}`)}{ing.unidadeCompra === 'pacote' && ing.unidadesPorPacote ? ` (${ing.unidadesPorPacote} ${t(`units.${ing.pacoteConteudoUnidade || 'un'}`)})` : ''}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-gray-700">{formatCurrency(ing.precoCompra)}/{t(`units.${ing.unidadeCompra}`)}</td>
                     <td className="px-4 py-3 text-center text-gray-600">{ing.fatorCorrecao.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-700">{formatCurrency(unitCost(ing))}{unitCostLabel(ing)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 justify-end">
                         <button onClick={() => openEdit(ing)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md"><Edit2 size={13} /></button>
@@ -237,18 +274,16 @@ export function IngredientsPage() {
                     <button onClick={() => setDeleteTarget(ing)} className="p-1.5 text-red-500 bg-red-50 rounded-md"><Trash2 size={13} /></button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <div className="text-xs text-gray-400">{t('ingredients.purchaseUnit')}</div>
-                    <div className="font-medium">{ing.unidadeCompra}</div>
+                    <div className="font-medium">
+                      {t(`units.${ing.unidadeCompra}`)}{ing.unidadeCompra === 'pacote' && ing.unidadesPorPacote ? ` (${ing.unidadesPorPacote} ${t(`units.${ing.pacoteConteudoUnidade || 'un'}`)})` : ''}
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-400">{t('ingredients.purchasePrice')}</div>
                     <div className="font-mono">{formatCurrency(ing.precoCompra)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400">{t('ingredients.unitCost')}</div>
-                    <div className="font-mono">{formatCurrency(unitCost(ing))}{unitCostLabel(ing)}</div>
                   </div>
                 </div>
               </div>

@@ -38,6 +38,10 @@
     "supplier": "Proveedor",
     "purchaseUnit": "Un. compra",
     "purchasePrice": "Precio compra",
+    "packagePrice": "Precio del paquete",
+    "unitsPerPackage": "Unidades por paquete",
+    "packageContains": "El paquete contiene",
+    "costPerUnit": "Costo por unidad",
     "correctionFactor": "Factor de corrección",
     "correctionHelp": "Ej: 1.15 = 15% de pérdida (pelado, evaporación)",
     "save": "Guardar",
@@ -63,10 +67,11 @@
     "prepTime": "Tiempo de preparación (min)",
     "fixedExpensesPct": "Gastos fijos (%)",
     "fixedExpensesHelp": "Recargo sobre el costo para cubrir alquiler, energía, etc.",
-    "marginPct": "Margen de ganancia deseado (%)",
+    "marginPct": "Margen de ganancia (% sobre el costo)",
+    "profitMargin": "Margen de ganancia (s/ costo)",
     "pricingModel": "Modelo de precios",
-    "markup": "Markup simple",
-    "foodcost": "Food Cost",
+    "markup": "Markup (costo + %)",
+    "foodcost": "Food Cost (margen s/ venta)",
     "manualPrice": "Precio manual (sobrescribe cálculo)",
     "tabs": {
       "operational": "Operacional",
@@ -126,9 +131,15 @@
   "units": {
     "kg": "kg",
     "g": "g",
+    "lb": "lb (libra)",
+    "oz": "oz (onza)",
     "L": "L",
     "ml": "ml",
-    "un": "un"
+    "gal": "galón (US)",
+    "cup": "cup",
+    "floz": "fl oz",
+    "un": "un",
+    "pacote": "paquete"
   },
   "common": {
     "currency": "$",
@@ -170,5 +181,44 @@
     "feat2": "Datos guardados en la nube, accede desde cualquier lugar",
     "feat3": "Fichas técnicas en PT, EN, ES + exportación PDF",
     "feat4": "Simulador de precio e indicadores de margen"
+  },
+  "shopping": {
+    "title": "Lista de Compras y Precios",
+    "navShort": "Compras",
+    "subtitle": "Actualiza los precios aquí y el costo de los platos se ajusta automáticamente.",
+    "price": "Precio",
+    "usedIn": "En platos",
+    "dishes": "platos",
+    "buyQty": "Comprar",
+    "estimatedTotal": "Total estimado de compra",
+    "autoUpdate": "Al cambiar un precio, todos los platos que usan el insumo se recalculan automáticamente."
+  },
+  "converter": {
+    "title": "Conversión de Pesos y Medidas",
+    "navShort": "Conversión",
+    "value": "Valor",
+    "from": "De",
+    "to": "A",
+    "swap": "Invertir",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "clear": "Limpiar",
+    "result": "Resultado",
+    "system": "Sistema",
+    "searchIngredient": "Buscar ingrediente...",
+    "selectIngredient": "Elige un ingrediente para convertir peso ↔ volumen",
+    "history": "Historial",
+    "favorites": "Favoritos",
+    "noHistory": "Aún no hay conversiones.",
+    "equivalences": "Equivalencias rápidas",
+    "quickTool": "Conversor rápido",
+    "categories": { "weight": "Peso", "volume": "Volumen", "length": "Longitud", "temperature": "Temperatura", "ingredient": "Ingrediente" },
+    "systems": { "metric": "Métrico", "us": "Imperial (EE.UU.)", "uk": "Imperial (UK)" },
+    "units": {
+      "mg": "mg", "g": "g", "kg": "kg", "oz": "oz (onza)", "lb": "lb (libra)",
+      "ml": "mL", "L": "L", "tsp": "Cucharadita", "tbsp": "Cucharada", "dessertspoon": "Cuchara de postre", "coffeespoon": "Cuchara de café", "cup": "Taza (cup)", "floz": "Onza líquida", "pint": "Pint", "quart": "Quart", "gallon": "Galón",
+      "mm": "mm", "cm": "cm", "m": "m", "in": "Pulgada",
+      "C": "Celsius (°C)", "F": "Fahrenheit (°F)", "K": "Kelvin (K)"
+    }
   }
 }

@@ -4,11 +4,25 @@ import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'l
 import { v4 as uuidv4 } from 'uuid';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
-import { calcDish, calcItemCost, laborCost, formatCurrency, formatPct } from '../../utils/calculations';
+import { calcDish, calcItemCost, laborCost, unitCostOf, usageDimension, formatCurrency, formatPct } from '../../utils/calculations';
 import { MarginBadge } from '../ui/MarginBadge';
 import type { AppView, Dish, RecipeItem, PrepStep, PricingModel, Lang } from '../../types';
 
-const UNITS = ['g', 'kg', 'ml', 'L', 'un'];
+const UNITS = ['g', 'kg', 'lb', 'oz', 'ml', 'L', 'un'];
+const WEIGHT_USAGE = ['g', 'kg', 'lb', 'oz'];
+const VOLUME_USAGE = ['ml', 'L'];
+
+// Unidades de uso permitidas na receita conforme a dimensão do insumo.
+function usageUnitsFor(dim: 'weight' | 'volume' | 'count'): string[] {
+  if (dim === 'weight') return WEIGHT_USAGE;
+  if (dim === 'volume') return VOLUME_USAGE;
+  return ['un'];
+}
+function defaultUsageUnit(dim: 'weight' | 'volume' | 'count'): string {
+  if (dim === 'weight') return 'g';
+  if (dim === 'volume') return 'ml';
+  return 'un';
+}
 
 interface Props {
   dishId?: string;
@@ -25,8 +39,8 @@ function emptyDish(): Dish {
     etapas: [],
     custoMaoObra: 0,
     despesasFixasPct: 0,
-    margemLucroPct: 30,
-    modeloPrecificacao: 'foodcost',
+    margemLucroPct: 100,
+    modeloPrecificacao: 'markup',
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -69,6 +83,15 @@ export function DishPage({ dishId, onNavigate }: Props) {
     const items = [...dish.itens];
     items[idx] = { ...items[idx], ...patch };
     update('itens', items);
+  };
+
+  // Ao escolher o insumo, define a unidade de uso padrão conforme a dimensão
+  // (peso -> g, volume -> ml, contagem/pacote de unidades -> un).
+  const selectIngredient = (idx: number, ingredienteId: string) => {
+    const ing = ingMap.get(ingredienteId);
+    const patch: Partial<RecipeItem> = { ingredienteId };
+    if (ing) patch.unidade = defaultUsageUnit(usageDimension(ing));
+    updateItem(idx, patch);
   };
 
   const removeItem = (idx: number) => {
@@ -142,10 +165,11 @@ export function DishPage({ dishId, onNavigate }: Props) {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">{t('dish.marginPct')}</label>
             <input
-              type="number" min="0" max="99" step="1"
+              type="number" min="0" step="1"
               value={dish.margemLucroPct}
               onChange={e => update('margemLucroPct', parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              disabled={!!(dish.precoVendaManual && dish.precoVendaManual > 0)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-100 disabled:text-gray-400"
             />
           </div>
         </div>
@@ -234,7 +258,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                         <td className="py-2 pr-2">
                           <select
                             value={item.ingredienteId}
-                            onChange={e => updateItem(idx, { ingredienteId: e.target.value })}
+                            onChange={e => selectIngredient(idx, e.target.value)}
                             className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
                           >
                             <option value="">{t('dish.selectIngredient')}</option>
@@ -252,18 +276,26 @@ export function DishPage({ dishId, onNavigate }: Props) {
                           />
                         </td>
                         <td className="py-2 px-2">
-                          <select
-                            value={item.unidade}
-                            onChange={e => updateItem(idx, { unidade: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
-                          >
-                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                          </select>
+                          {(() => {
+                            const opts = ing ? usageUnitsFor(usageDimension(ing)) : UNITS;
+                            if (ing && opts.length === 1) {
+                              return <div className="px-2 py-1.5 text-sm text-center text-gray-500 bg-gray-50 rounded-md">{opts[0]}</div>;
+                            }
+                            return (
+                              <select
+                                value={item.unidade}
+                                onChange={e => updateItem(idx, { unidade: e.target.value })}
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                              >
+                                {opts.map(u => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                            );
+                          })()}
                         </td>
                         {activeTab === 'managerial' && (
                           <>
                             <td className="py-2 px-2 text-right font-mono text-xs text-gray-500">
-                              {ing ? formatCurrency(ing.precoCompra / (ing.unidadeCompra === 'kg' || ing.unidadeCompra === 'L' ? 1000 : 1)) : '—'}
+                              {ing ? formatCurrency(unitCostOf(ing).value) + unitCostOf(ing).label : '—'}
                             </td>
                             <td className="py-2 px-2 text-right font-mono text-sm font-medium text-gray-800">
                               {ing ? formatCurrency(itemCost) : '—'}
@@ -301,7 +333,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                     <div className="flex items-center justify-between mb-2">
                       <select
                         value={item.ingredienteId}
-                        onChange={e => updateItem(idx, { ingredienteId: e.target.value })}
+                        onChange={e => selectIngredient(idx, e.target.value)}
                         className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white mr-2"
                       >
                         <option value="">{t('dish.selectIngredient')}</option>
@@ -321,13 +353,21 @@ export function DishPage({ dishId, onNavigate }: Props) {
                         className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
                         placeholder="Qtd"
                       />
-                      <select
-                        value={item.unidade}
-                        onChange={e => updateItem(idx, { unidade: e.target.value })}
-                        className="px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
-                      >
-                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
+                      {(() => {
+                        const opts = ing ? usageUnitsFor(usageDimension(ing)) : UNITS;
+                        if (ing && opts.length === 1) {
+                          return <span className="px-3 py-1.5 text-sm text-gray-500 bg-gray-100 rounded-md">{opts[0]}</span>;
+                        }
+                        return (
+                          <select
+                            value={item.unidade}
+                            onChange={e => updateItem(idx, { unidade: e.target.value })}
+                            className="px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                          >
+                            {opts.map(u => <option key={u} value={u}>{u}</option>)}
+                          </select>
+                        );
+                      })()}
                       {activeTab === 'managerial' && ing && (
                         <span className="px-2 py-1.5 text-sm font-mono text-amber-700 bg-amber-50 rounded-md">
                           {formatCurrency(itemCost)}
@@ -481,7 +521,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('dish.summary')}</h2>
-            <MarginBadge status={calculated.margemStatus} value={100 - calculated.cmvPct} />
+            <MarginBadge status={calculated.margemStatus} value={calculated.markupPct} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 rounded-lg p-3">
@@ -501,10 +541,16 @@ export function DishPage({ dishId, onNavigate }: Props) {
               <div className="font-mono font-semibold text-gray-900">{formatPct(calculated.cmvPct)}</div>
             </div>
           </div>
-          <div className="mt-3 bg-gray-50 rounded-lg p-3">
-            <div className="text-xs text-gray-400 mb-1">{t('dish.profitPortion')}</div>
-            <div className={`font-mono font-semibold ${calculated.lucroPorcao >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-              {formatCurrency(calculated.lucroPorcao)}
+          <div className="mt-3 grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-400 mb-1">{t('dish.profitPortion')}</div>
+              <div className={`font-mono font-semibold ${calculated.lucroPorcao >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                {formatCurrency(calculated.lucroPorcao)}
+              </div>
+            </div>
+            <div className="bg-emerald-50 rounded-lg p-3">
+              <div className="text-xs text-emerald-600 mb-1">{t('dish.profitMargin')}</div>
+              <div className="font-mono font-bold text-emerald-700 text-lg">{formatPct(calculated.markupPct)}</div>
             </div>
           </div>
         </div>

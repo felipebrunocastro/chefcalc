@@ -1,7 +1,10 @@
 export type Lang = 'pt' | 'en' | 'es';
 export type LocalizedString = { pt: string; en: string; es: string };
 
-export type UnitPurchase = 'kg' | 'g' | 'L' | 'ml' | 'un';
+export type UnitPurchase = 'kg' | 'g' | 'lb' | 'oz' | 'L' | 'ml' | 'gal' | 'cup' | 'floz' | 'un' | 'pacote';
+
+// Unidade do conteúdo de um pacote (peso, volume ou contagem).
+export type PackageContentUnit = 'un' | 'g' | 'kg' | 'lb' | 'oz' | 'ml' | 'L';
 
 export interface Ingredient {
   id: string;
@@ -9,7 +12,12 @@ export interface Ingredient {
   fornecedor?: string;
   unidadeCompra: UnitPurchase;
   precoCompra: number;
+  // Quando unidadeCompra === 'pacote': o pacote contém `unidadesPorPacote`
+  // de `pacoteConteudoUnidade` (ex: 10 lb, 12 un, 2 L). Default de unidade = 'un'.
+  unidadesPorPacote?: number;
+  pacoteConteudoUnidade?: PackageContentUnit;
   fatorCorrecao: number; // 1.0 = no loss, 1.15 = 15% loss
+  precoAtualizadoEm?: number; // timestamp da última atualização de preço
   createdAt: number;
 }
 
@@ -54,8 +62,9 @@ export interface CalculatedDish {
   custoTotalPorcao: number;
   precoVendaSugerido: number;
   cmvPct: number;
+  markupPct: number;   // margem sobre o custo: (preço - custo) / custo × 100
   lucroPorcao: number;
   margemStatus: 'green' | 'yellow' | 'red';
 }
 
-export type AppView = 'dashboard' | 'ingredients' | 'dish' | 'simulator' | 'export';
+export type AppView = 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export';
