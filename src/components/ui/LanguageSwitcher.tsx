@@ -2,9 +2,9 @@ import { useTranslation } from 'react-i18next';
 import type { Lang } from '../../types';
 
 const LANGS: { code: Lang; label: string; flag: string }[] = [
-  { code: 'pt', label: 'PT', flag: '🇧🇷' },
   { code: 'en', label: 'EN', flag: '🇺🇸' },
   { code: 'es', label: 'ES', flag: '🇪🇸' },
+  { code: 'pt', label: 'PT', flag: '🇧🇷' },
 ];
 
 export function LanguageSwitcher({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {

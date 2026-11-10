@@ -20,7 +20,9 @@ function merge(base: Obj, over: Obj): Obj {
   return out;
 }
 
-const savedLang = localStorage.getItem('lang') || 'pt';
+// Idioma padrão: inglês. Ordem de preferência: inglês → espanhol → português.
+const saved = localStorage.getItem('lang');
+const savedLang = saved === 'en' || saved === 'es' || saved === 'pt' ? saved : 'en';
 
 i18n
   .use(initReactI18next)
@@ -31,8 +33,12 @@ i18n
       es: { translation: merge(merge(merge(merge(merge(es, extra.es), extra2.es), extra3.es), landingText.es), extra4.es) },
     },
     lng: savedLang,
-    fallbackLng: 'pt',
+    fallbackLng: ['en', 'es', 'pt'],
     interpolation: { escapeValue: false },
   });
+
+const htmlLang = (l: string) => (l === 'pt' ? 'pt-BR' : l === 'es' ? 'es' : 'en');
+document.documentElement.lang = htmlLang(i18n.language);
+i18n.on('languageChanged', l => { document.documentElement.lang = htmlLang(l); });
 
 export default i18n;
