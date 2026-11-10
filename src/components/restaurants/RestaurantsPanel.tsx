@@ -17,7 +17,7 @@ export function RestaurantsPanel() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <section className="card p-5 md:p-7 mb-6 flex flex-col sm:flex-row items-center gap-5 bg-gradient-to-br from-white to-blue-50">
-        <Mascot size={112} />
+        <Mascot size={150} />
         <div className="flex-1 text-center sm:text-left">
           <h1 className="text-2xl md:text-3xl font-bold text-navy-900">{t('restaurants.title')}</h1>
           <p className="text-slate-600 mt-1">{t('restaurants.welcome')}</p>
