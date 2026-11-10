@@ -5,6 +5,7 @@ import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { useAuth } from '../hooks/useAuth';
 import { useRestaurant } from '../hooks/useRestaurant';
 import { RestaurantLogo } from './restaurants/RestaurantLogo';
+import { Logo } from './ui/Logo';
 import type { AppView, RestaurantRole } from '../types';
 
 interface Props {
@@ -65,8 +66,8 @@ export function Layout({ current, onNavigate, children }: Props) {
           )}
 
           <button onClick={() => select(null)} className={`${restaurant ? 'hidden sm:flex' : 'flex'} items-center gap-2 rounded-lg px-1 py-1 hover:bg-navy-800`} title={t('nav.restaurants')}>
-            <ChefHat size={22} className="text-blue-300" />
-            <span className="font-bold text-base hidden sm:inline">ChefCalc</span>
+            <ChefHat size={22} className="text-sky-300 sm:hidden" aria-hidden="true" />
+            <Logo tone="light" height={24} showIcon={false} className="hidden sm:block" />
           </button>
 
           {restaurant && (

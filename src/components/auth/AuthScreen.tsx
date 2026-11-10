@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChefHat } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 import { Mascot } from '../ui/Mascot';
+import { Logo } from '../ui/Logo';
+import { navigate } from '../../lib/router';
 
-export function AuthScreen() {
+export function AuthScreen({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' }) {
   const { t } = useTranslation();
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,11 +30,12 @@ export function AuthScreen() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="absolute top-4 left-4"><a href="/" onClick={e => { e.preventDefault(); navigate('/'); }} className="text-sm font-medium text-blue-700 hover:underline">← ChefCalc</a></div>
       <div className="absolute top-4 right-4"><LanguageSwitcher tone="light" /></div>
 
       <div className="flex flex-col items-center gap-2 mb-6">
         <Mascot size={96} />
-        <span className="flex items-center gap-2 text-2xl font-bold text-navy-900"><ChefHat size={26} className="text-blue-600" /> ChefCalc</span>
+        <Logo height={34} />
       </div>
 
       <form onSubmit={submit} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 w-full max-w-sm">

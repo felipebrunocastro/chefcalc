@@ -92,7 +92,7 @@ export function parseMoney(v: string | undefined, decimal: '.' | ','): number | 
   if (!s || s === '-' || s === '—') return null;
   let neg = false;
   if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
-  s = s.replace(/[^\d.,\-]/g, '');
+  s = s.replace(/[^\d.,-]/g, '');
   if (s.startsWith('-')) { neg = !neg; s = s.slice(1); }
   if (decimal === ',') s = s.replace(/\./g, '').replace(',', '.');
   else s = s.replace(/,/g, '');

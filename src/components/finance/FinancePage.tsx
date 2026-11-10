@@ -15,6 +15,7 @@ import { VARIABLE_KINDS, monthSalesTotal } from '../../utils/finance';
 import { salesChannels } from '../../utils/breakeven';
 import { GoalsSection } from './GoalsSection';
 import { IntegrationsPanel } from '../integrations/IntegrationsPanel';
+import { PENDING_SIM_KEY, type SimValues } from '../landing/Simulator';
 
 const LOCALES = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' } as const;
 
@@ -168,6 +169,18 @@ export function FinancePage() {
       </div>
 
       {tab === 'integrations' ? <IntegrationsPanel months={months} onApplied={reload} /> : <>
+      <PendingSimulation onApply={async v => {
+        const items: BudgetItem[] = [
+          ...budget,
+          { id: uuidv4(), categoria: t('landing.simApply.fixedLabel'), descricao: '', tipo: 'fixed', valor: v.fixed },
+          { id: uuidv4(), categoria: t('landing.simApply.variableLabel'), descricao: '', tipo: 'variable', valor: v.variablePct, unidade: 'pct', natureza: 'other' },
+        ];
+        setBudget(items);
+        await update(restaurant.id, { budget: items, goals: { ...restaurant.goals, customPct: v.marginPct, dashboardScenario: v.marginPct } });
+        if (restaurant.role === 'owner' && (v.days || v.ticket)) {
+          await update(restaurant.id, { profile: { ...restaurant.profile, openDaysPerMonth: restaurant.profile.openDaysPerMonth ?? v.days, avgTicket: restaurant.profile.avgTicket ?? v.ticket } });
+        }
+      }} />
 
       {/* ---------------- Tabela 1: estimativa ---------------- */}
       <section className="card p-4 md:p-5" aria-labelledby="budget-h">
@@ -532,6 +545,27 @@ function SalesInputs({ sales, entries, channels, onChange }: {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PendingSimulation({ onApply }: { onApply: (v: SimValues) => Promise<void> }) {
+  const { t } = useTranslation();
+  const [v, setV] = useState<SimValues | null>(() => {
+    try { const raw = localStorage.getItem(PENDING_SIM_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  });
+  const [done, setDone] = useState(false);
+  const clear = () => { try { localStorage.removeItem(PENDING_SIM_KEY); } catch { /* ignore */ } setV(null); };
+  if (done) return <p className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm" role="status">{t('landing.simApply.applied')}</p>;
+  if (!v) return null;
+  return (
+    <div className="rounded-xl bg-sky-50 border border-sky-200 px-4 py-3 flex flex-wrap items-center gap-3" role="status">
+      <div className="flex-1 min-w-[14rem]">
+        <p className="font-semibold text-navy-900 text-sm">{t('landing.simApply.title')}</p>
+        <p className="text-sm text-slate-700">{t('landing.simApply.text', { fixed: formatCurrency(v.fixed), variable: v.variablePct, margin: v.marginPct })}</p>
+      </div>
+      <button onClick={async () => { await onApply(v); clear(); setDone(true); }} className="btn-primary">{t('landing.simApply.apply')}</button>
+      <button onClick={clear} className="btn-secondary">{t('landing.simApply.dismiss')}</button>
     </div>
   );
 }

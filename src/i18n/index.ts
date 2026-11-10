@@ -6,6 +6,7 @@ import es from './es.json';
 import { extra } from './extra';
 import { extra2 } from './extra2';
 import { extra3 } from './extra3';
+import { landingText } from './landing';
 
 type Obj = Record<string, unknown>;
 function merge(base: Obj, over: Obj): Obj {
@@ -24,9 +25,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      pt: { translation: merge(merge(merge(pt, extra.pt), extra2.pt), extra3.pt) },
-      en: { translation: merge(merge(merge(en, extra.en), extra2.en), extra3.en) },
-      es: { translation: merge(merge(merge(es, extra.es), extra2.es), extra3.es) },
+      pt: { translation: merge(merge(merge(merge(pt, extra.pt), extra2.pt), extra3.pt), landingText.pt) },
+      en: { translation: merge(merge(merge(merge(en, extra.en), extra2.en), extra3.en), landingText.en) },
+      es: { translation: merge(merge(merge(merge(es, extra.es), extra2.es), extra3.es), landingText.es) },
     },
     lng: savedLang,
     fallbackLng: 'pt',

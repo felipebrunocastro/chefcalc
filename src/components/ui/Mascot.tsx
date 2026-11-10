@@ -9,17 +9,17 @@ for (const [path, url] of Object.entries(files)) {
   if (m) byVariant[m[1]] = url;
 }
 
-export type MascotVariant = 'custom' | 'sheets' | 'ingredients' | 'shopping' | 'finance' | 'converter';
+export type MascotVariant = 'custom' | 'hero' | 'sheets' | 'ingredients' | 'shopping' | 'finance' | 'converter';
 
-interface Props { size?: number; className?: string; decorative?: boolean; variant?: MascotVariant }
+interface Props { size?: number; className?: string; decorative?: boolean; variant?: MascotVariant; lazy?: boolean; priority?: boolean }
 
-export function Mascot({ size = 120, className = '', decorative = false, variant = 'custom' }: Props) {
+export function Mascot({ size = 120, className = '', decorative = false, variant = 'custom', lazy = false, priority = false }: Props) {
   const { t } = useTranslation();
   const custom = byVariant[variant] ?? byVariant.custom;
   const a11y = decorative ? { 'aria-hidden': true as const } : { role: 'img', 'aria-label': t('mascot.alt') };
 
   if (custom) {
-    return <img src={custom} width={size} height={size} alt={decorative ? '' : t('mascot.alt')} className={`object-contain ${className}`} />;
+    return <img src={custom} width={size} height={size} alt={decorative ? '' : t('mascot.alt')} loading={lazy ? 'lazy' : undefined} decoding="async" fetchPriority={priority ? 'high' : undefined} className={`object-contain ${className}`} />;
   }
 
   // Mascote provisório: chef simpático, chapéu branco e avental azul. Formas simples para ler bem em tamanhos pequenos.
