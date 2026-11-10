@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Layout } from './components/Layout';
+import { Layout, allowedViews } from './components/Layout';
+import { SheetView } from './components/dish/SheetView';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { IngredientsPage } from './components/ingredients/IngredientsPage';
 import { ShoppingListPage } from './components/shopping/ShoppingListPage';
@@ -37,11 +38,18 @@ function Workspace() {
   const [editingDishId, setEditingDishId] = useState<string | undefined>();
   const [printIds, setPrintIds] = useState<string[] | undefined>();
 
-  // Ao abrir/trocar de restaurante, começa pela visão geral dele.
-  useEffect(() => { setView('home'); setEditingDishId(undefined); setPrintIds(undefined); }, [current?.id]);
+  const allowed = current ? allowedViews(current.role) : null;
+  const readOnly = !!current && current.role !== 'owner';
 
-  // Toda navegação passa pela proteção de alterações não salvas.
+  // Ao abrir/trocar de restaurante, começa pela visão geral (ou pelas fichas, se for acesso compartilhado).
+  useEffect(() => {
+    setView(current && current.role !== 'owner' ? 'dashboard' : 'home');
+    setEditingDishId(undefined); setPrintIds(undefined);
+  }, [current?.id, current?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toda navegação passa pela proteção de alterações não salvas e pelo papel do usuário.
   const navigate = (nextView: AppView, dishId?: string) => guard(() => {
+    if (allowed && !allowed.includes(nextView) && !(nextView === 'sheet')) nextView = 'dashboard';
     setView(nextView);
     setEditingDishId(dishId);
     if (nextView !== 'export') setPrintIds(undefined);
@@ -55,16 +63,19 @@ function Workspace() {
         <RestaurantsPanel />
       ) : (
         <div key={current.id}>
+          {readOnly && view !== 'dashboard' && view !== 'sheet' && view !== 'finance' ? null : <>
           {view === 'home' && <RestaurantHome onNavigate={navigate} />}
-          {view === 'dashboard' && <Dashboard onNavigate={navigate} onPrint={ids => { setPrintIds(ids); navigate('export'); }} />}
+          {view === 'dashboard' && <Dashboard readOnly={readOnly} onNavigate={navigate} onPrint={ids => { setPrintIds(ids); navigate('export'); }} />}
+          {view === 'sheet' && <SheetView dishId={editingDishId} onNavigate={navigate} />}
           {view === 'ingredients' && <IngredientsPage />}
           {view === 'shopping' && <ShoppingListPage />}
           {view === 'dish' && <DishPage key={editingDishId ?? 'new'} dishId={editingDishId} onNavigate={navigate} />}
           {view === 'simulator' && <SimulatorPage />}
           {view === 'converter' && <ConverterPage />}
-          {view === 'finance' && <FinancePage />}
+          {view === 'finance' && (!readOnly || current.role === 'finance') && <FinancePage />}
           {view === 'export' && <ExportPage initialSelection={printIds} />}
-          <ConverterFab />
+          </>}
+          {!readOnly && <ConverterFab />}
         </div>
       )}
     </Layout>

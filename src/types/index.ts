@@ -69,7 +69,7 @@ export interface CalculatedDish {
   foodCostDisponivel: boolean; // custo completo e preço > 0
 }
 
-export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance';
+export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance' | 'sheet';
 
 // ---------- Modo consultor: restaurantes e financeiro ----------
 
@@ -108,5 +108,16 @@ export interface Restaurant {
   currency: import('../lib/currency').Currency;
   logo?: string | null;          // data URL
   budget: BudgetItem[];
+  createdAt: string;
+  role: RestaurantRole;          // papel do usuário logado neste restaurante
+}
+
+export type RestaurantRole = 'owner' | 'viewer' | 'finance';
+export type MemberRole = Exclude<RestaurantRole, 'owner'>;
+
+export interface RestaurantMember {
+  restaurantId: string;
+  email: string;
+  role: MemberRole;
   createdAt: string;
 }

@@ -4,8 +4,8 @@ import type { Restaurant } from '../../types';
 export function RestaurantLogo({ restaurant, size = 48, className = '' }: { restaurant: Pick<Restaurant, 'name' | 'logo'>; size?: number; className?: string }) {
   if (restaurant.logo) {
     return (
-      <span className={`inline-flex items-center justify-center bg-white rounded-xl border border-blue-100 overflow-hidden shrink-0 ${className}`} style={{ width: size, height: size }}>
-        <img src={restaurant.logo} alt="" className="max-w-full max-h-full object-contain p-1" />
+      <span className={`inline-flex items-center justify-center bg-white rounded-xl border border-blue-100 overflow-hidden shrink-0 p-1 ${className}`} style={{ width: size, height: size }}>
+        <img src={restaurant.logo} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
       </span>
     );
   }

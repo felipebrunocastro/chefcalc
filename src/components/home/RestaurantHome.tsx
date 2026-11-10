@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { ShareDialog } from '../restaurants/ShareDialog';
 import { useTranslation } from 'react-i18next';
-import { Plus, Package, Wallet, ClipboardList, Receipt, Truck, Calculator } from 'lucide-react';
+import { Plus, Package, Wallet, ClipboardList, Receipt, Truck, Calculator, Share2 } from 'lucide-react';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDishes } from '../../hooks/useDishes';
 import { formatCurrency } from '../../lib/currency';
@@ -17,6 +18,7 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
   const { dishes, loading } = useDishes();
   const { months } = useFinanceMonths(restaurant?.id);
   const locale = LOCALES[(i18n.language as keyof typeof LOCALES)] ?? 'pt-BR';
+  const [sharing, setSharing] = useState(false);
 
   const period = currentPeriod();
   const month = months.find(m => m.period === period);
@@ -59,7 +61,11 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
           <h1 className="text-2xl font-bold text-navy-900 truncate">{restaurant.name}</h1>
           <p className="text-sm text-slate-500">{t('restaurants.sheets', { count: dishes.length })} · {restaurant.currency}</p>
         </div>
+        {restaurant.role === 'owner' && (
+          <button onClick={() => setSharing(true)} className="btn-secondary self-start sm:self-center"><Share2 size={15} /> {t('share.button')}</button>
+        )}
       </section>
+      {sharing && <ShareDialog restaurant={restaurant} onClose={() => setSharing(false)} />}
 
       <section aria-label={t('home.shortcuts')} className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {shortcuts.map(s => (

@@ -2,6 +2,7 @@
 // Mesclados sobre pt/en/es.json em i18n/index.ts (chaves aqui têm prioridade).
 
 const pt = {
+  common: { view: 'Ver' },
   nav: { home: 'Visão geral', sheets: 'Fichas técnicas', finance: 'Financeiro', newDish: 'Nova ficha técnica', restaurants: 'Meus restaurantes', switchClient: 'Trocar cliente', menu: 'Menu' },
   dashboard: {
     title: 'Fichas técnicas', search: 'Buscar ficha técnica...', noDishes: 'Nenhuma ficha técnica neste restaurante ainda.',
@@ -10,6 +11,7 @@ const pt = {
     selectForPrint: 'Selecionar para impressão', printSelected: 'Imprimir selecionadas ({{n}})',
   },
   restaurants: {
+    sharedWithMe: 'Compartilhados comigo', 
     title: 'Meus restaurantes', welcome: 'Olá, chef! Escolha um cliente para trabalhar.', add: 'Cadastrar restaurante',
     new: 'Novo restaurante', edit: 'Editar restaurante', name: 'Nome do restaurante', nameRequired: 'Informe o nome do restaurante.',
     currency: 'Moeda padrão', currencyHint: 'Trocar a moeda muda só a formatação. Nenhum valor é convertido.',
@@ -62,12 +64,26 @@ const pt = {
     noneSelected: 'Selecione ao menos uma ficha técnica.',
   },
   export: { backupScope: 'Backup do restaurante selecionado. Importar cria cópias neste restaurante.' },
+  share: {
+    button: 'Compartilhar', title: 'Compartilhar {{name}}',
+    hint: 'Dê acesso a outra pessoa pelo e-mail. Ela não pode alterar fichas técnicas, insumos nem os dados do restaurante.',
+    email: 'E-mail da pessoa', role: 'Tipo de acesso',
+    viewer: 'Ver fichas técnicas', viewerHint: 'Só visualiza as fichas técnicas.',
+    finance: 'Ver fichas + editar Financeiro', financeHint: 'Visualiza as fichas técnicas e edita o Financeiro.',
+    add: 'Dar acesso', remove: 'Remover acesso', none: 'Ninguém tem acesso ainda.', people: 'Pessoas com acesso',
+    howTo: 'A pessoa entra no ChefCalc com este mesmo e-mail (criando a conta, se ainda não tiver). O restaurante aparece para ela em "Compartilhados comigo".',
+    invalidEmail: 'Digite um e-mail válido.', selfEmail: 'Esse é o seu próprio e-mail.', close: 'Fechar',
+    setupHint: 'Para compartilhar, rode supabase/migrations/003_sharing.sql no Supabase.',
+  },
+  sheetView: { back: 'Voltar às fichas', readOnly: 'Somente visualização' },
+  roles: { owner: 'Dono', viewer: 'Somente visualização', finance: 'Visualização + Financeiro' },
   mascot: { alt: 'Mascote chef do ChefCalc' },
 };
 
 type Dict = typeof pt;
 
 const en: Dict = {
+  common: { view: 'View' },
   nav: { home: 'Overview', sheets: 'Recipe cards', finance: 'Finance', newDish: 'New recipe card', restaurants: 'My restaurants', switchClient: 'Switch client', menu: 'Menu' },
   dashboard: {
     title: 'Recipe cards', search: 'Search recipe cards...', noDishes: 'No recipe cards in this restaurant yet.',
@@ -76,6 +92,7 @@ const en: Dict = {
     selectForPrint: 'Select for printing', printSelected: 'Print selected ({{n}})',
   },
   restaurants: {
+    sharedWithMe: 'Shared with me', 
     title: 'My restaurants', welcome: 'Hi, chef! Pick a client to work on.', add: 'Add restaurant',
     new: 'New restaurant', edit: 'Edit restaurant', name: 'Restaurant name', nameRequired: 'Enter the restaurant name.',
     currency: 'Default currency', currencyHint: 'Changing the currency only changes formatting. No values are converted.',
@@ -128,10 +145,24 @@ const en: Dict = {
     noneSelected: 'Select at least one recipe card.',
   },
   export: { backupScope: 'Backup of the selected restaurant. Importing creates copies in this restaurant.' },
+  share: {
+    button: 'Share', title: 'Share {{name}}',
+    hint: 'Give someone access by email. They cannot change recipe cards, ingredients or restaurant details.',
+    email: "Person's email", role: 'Access type',
+    viewer: 'View recipe cards', viewerHint: 'Can only view the recipe cards.',
+    finance: 'View cards + edit Finance', financeHint: 'Views the recipe cards and edits Finance.',
+    add: 'Give access', remove: 'Remove access', none: 'Nobody has access yet.', people: 'People with access',
+    howTo: 'The person signs in to ChefCalc with this same email (creating an account if needed). The restaurant shows up under "Shared with me".',
+    invalidEmail: 'Enter a valid email.', selfEmail: 'That is your own email.', close: 'Close',
+    setupHint: 'To share, run supabase/migrations/003_sharing.sql in Supabase.',
+  },
+  sheetView: { back: 'Back to recipe cards', readOnly: 'View only' },
+  roles: { owner: 'Owner', viewer: 'View only', finance: 'View + Finance' },
   mascot: { alt: 'ChefCalc chef mascot' },
 };
 
 const es: Dict = {
+  common: { view: 'Ver' },
   nav: { home: 'Resumen', sheets: 'Fichas técnicas', finance: 'Finanzas', newDish: 'Nueva ficha técnica', restaurants: 'Mis restaurantes', switchClient: 'Cambiar cliente', menu: 'Menú' },
   dashboard: {
     title: 'Fichas técnicas', search: 'Buscar ficha técnica...', noDishes: 'Todavía no hay fichas técnicas en este restaurante.',
@@ -140,6 +171,7 @@ const es: Dict = {
     selectForPrint: 'Seleccionar para imprimir', printSelected: 'Imprimir seleccionadas ({{n}})',
   },
   restaurants: {
+    sharedWithMe: 'Compartidos conmigo', 
     title: 'Mis restaurantes', welcome: '¡Hola, chef! Elige un cliente para trabajar.', add: 'Registrar restaurante',
     new: 'Nuevo restaurante', edit: 'Editar restaurante', name: 'Nombre del restaurante', nameRequired: 'Indica el nombre del restaurante.',
     currency: 'Moneda predeterminada', currencyHint: 'Cambiar la moneda solo cambia el formato. Ningún valor se convierte.',
@@ -192,6 +224,19 @@ const es: Dict = {
     noneSelected: 'Selecciona al menos una ficha técnica.',
   },
   export: { backupScope: 'Respaldo del restaurante seleccionado. Importar crea copias en este restaurante.' },
+  share: {
+    button: 'Compartir', title: 'Compartir {{name}}',
+    hint: 'Da acceso a otra persona por correo. No puede cambiar fichas técnicas, insumos ni los datos del restaurante.',
+    email: 'Correo de la persona', role: 'Tipo de acceso',
+    viewer: 'Ver fichas técnicas', viewerHint: 'Solo ve las fichas técnicas.',
+    finance: 'Ver fichas + editar Finanzas', financeHint: 'Ve las fichas técnicas y edita Finanzas.',
+    add: 'Dar acceso', remove: 'Quitar acceso', none: 'Nadie tiene acceso todavía.', people: 'Personas con acceso',
+    howTo: 'La persona entra a ChefCalc con este mismo correo (creando la cuenta si aún no la tiene). El restaurante le aparece en "Compartidos conmigo".',
+    invalidEmail: 'Escribe un correo válido.', selfEmail: 'Ese es tu propio correo.', close: 'Cerrar',
+    setupHint: 'Para compartir, ejecuta supabase/migrations/003_sharing.sql en Supabase.',
+  },
+  sheetView: { back: 'Volver a las fichas', readOnly: 'Solo lectura' },
+  roles: { owner: 'Dueño', viewer: 'Solo lectura', finance: 'Lectura + Finanzas' },
   mascot: { alt: 'Mascota chef de ChefCalc' },
 };
 

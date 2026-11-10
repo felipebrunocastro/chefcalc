@@ -5,7 +5,7 @@ import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { useAuth } from '../hooks/useAuth';
 import { useRestaurant } from '../hooks/useRestaurant';
 import { RestaurantLogo } from './restaurants/RestaurantLogo';
-import type { AppView } from '../types';
+import type { AppView, RestaurantRole } from '../types';
 
 interface Props {
   current: AppView;
@@ -23,7 +23,13 @@ const NAV_ITEMS = [
   { view: 'export' as AppView, icon: Printer, key: 'nav.export' },
   { view: 'converter' as AppView, icon: Scale, key: 'converter.navShort' },
 ];
-const MOBILE_BAR = NAV_ITEMS.slice(0, 4);
+// Acesso compartilhado vê só o que o papel permite.
+const ALLOWED: Record<RestaurantRole, AppView[] | null> = {
+  owner: null,
+  viewer: ['dashboard'],
+  finance: ['dashboard', 'finance'],
+};
+export function allowedViews(role: RestaurantRole): AppView[] | null { return ALLOWED[role]; }
 
 export function Layout({ current, onNavigate, children }: Props) {
   const { t } = useTranslation();
@@ -36,13 +42,17 @@ export function Layout({ current, onNavigate, children }: Props) {
     setMobileMenuOpen(false);
   };
 
-  const isActive = (v: AppView) => current === v || (v === 'dashboard' && current === 'dish');
+  const isActive = (v: AppView) => current === v || (v === 'dashboard' && (current === 'dish' || current === 'sheet'));
+  const allowed = restaurant ? ALLOWED[restaurant.role] : null;
+  const navItems = allowed ? NAV_ITEMS.filter(i => allowed.includes(i.view)) : NAV_ITEMS;
+  const mobileBar = navItems.slice(0, 4);
+  const showMenu = navItems.length > 4;
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-navy-900 text-white sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-3 md:px-4 flex items-center h-14 gap-2 md:gap-3">
-          {restaurant && (
+          {restaurant && showMenu && (
             <button
               className="lg:hidden p-2 text-blue-100 hover:bg-navy-800 rounded-lg"
               onClick={() => setMobileMenuOpen(m => !m)}
@@ -62,6 +72,9 @@ export function Layout({ current, onNavigate, children }: Props) {
             <div className="flex items-center gap-2 min-w-0 sm:pl-2 sm:ml-1 sm:border-l border-navy-700">
               <RestaurantLogo restaurant={restaurant} size={30} className="!rounded-lg" />
               <span className="font-semibold text-sm truncate min-w-[3.5rem] max-w-[10rem] sm:max-w-[16rem]" title={restaurant.name}>{restaurant.name}</span>
+              {restaurant.role !== 'owner' && (
+                <span className="hidden sm:inline text-[11px] font-semibold bg-blue-600/30 text-blue-100 rounded-md px-2 py-0.5 shrink-0">{t(`roles.${restaurant.role}`)}</span>
+              )}
               <button
                 onClick={() => select(null)}
                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 bg-navy-800 hover:bg-navy-700 rounded-md px-2 py-1 shrink-0"
@@ -82,7 +95,7 @@ export function Layout({ current, onNavigate, children }: Props) {
         {restaurant && (
           <nav className="hidden lg:block bg-navy-950/40 border-t border-navy-800" aria-label={t('nav.menu')}>
             <div className="max-w-7xl mx-auto px-4 flex gap-1 py-1.5 overflow-x-auto">
-              {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
+              {navItems.map(({ view, icon: Icon, key }) => (
                 <button
                   key={view}
                   onClick={() => navigate(view)}
@@ -100,7 +113,7 @@ export function Layout({ current, onNavigate, children }: Props) {
 
         {restaurant && mobileMenuOpen && (
           <nav className="lg:hidden border-t border-navy-800 bg-navy-900 px-3 py-2" aria-label={t('nav.menu')}>
-            {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
+            {navItems.map(({ view, icon: Icon, key }) => (
               <button
                 key={view}
                 onClick={() => navigate(view)}
@@ -118,7 +131,7 @@ export function Layout({ current, onNavigate, children }: Props) {
 
       {restaurant && (
         <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-navy-900 z-40 flex pb-[env(safe-area-inset-bottom)]" aria-label={t('nav.menu')}>
-          {MOBILE_BAR.map(({ view, icon: Icon, key }) => (
+          {mobileBar.map(({ view, icon: Icon, key }) => (
             <button
               key={view}
               onClick={() => navigate(view)}
@@ -131,9 +144,9 @@ export function Layout({ current, onNavigate, children }: Props) {
               <span className="truncate max-w-[72px]">{t(key)}</span>
             </button>
           ))}
-          <button onClick={() => setMobileMenuOpen(true)} className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-blue-200">
+          {showMenu && <button onClick={() => setMobileMenuOpen(true)} className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-blue-200">
             <Menu size={19} /><span>{t('nav.menu')}</span>
-          </button>
+          </button>}
         </nav>
       )}
 

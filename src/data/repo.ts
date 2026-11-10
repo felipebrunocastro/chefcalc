@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Ingredient, Dish, Restaurant, FinanceMonth, BudgetItem } from '../types';
+import type { Ingredient, Dish, Restaurant, FinanceMonth, BudgetItem, MemberRole, RestaurantMember, RestaurantRole } from '../types';
 import type { Currency } from '../lib/currency';
 
 // Todas as linhas são protegidas por RLS no Supabase: o usuário só alcança
@@ -15,11 +15,12 @@ async function currentUserId(): Promise<string | undefined> {
 // ---------- Restaurantes ----------
 
 interface RestaurantRow {
-  id: string; name: string; currency: string; logo: string | null;
+  id: string; user_id?: string; name: string; currency: string; logo: string | null;
   budget: BudgetItem[] | null; created_at: string;
 }
 
-const toRestaurant = (r: RestaurantRow): Restaurant => ({
+const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaurant => ({
+  role,
   id: r.id,
   name: r.name,
   currency: (r.currency || 'BRL') as Currency,
@@ -28,13 +29,50 @@ const toRestaurant = (r: RestaurantRow): Restaurant => ({
   createdAt: r.created_at,
 });
 
+// Restaurantes próprios + os compartilhados comigo (o RLS devolve os dois).
 export async function getRestaurants(): Promise<Restaurant[]> {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  const email = (u.user?.email ?? '').toLowerCase();
   const { data, error } = await supabase
     .from('restaurants')
-    .select('id, name, currency, logo, budget, created_at')
+    .select('id, user_id, name, currency, logo, budget, created_at')
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data ?? []).map(r => toRestaurant(r as RestaurantRow));
+  // Papéis nos restaurantes compartilhados. Tolerante: antes da migração 003 a tabela não existe.
+  const roles = new Map<string, MemberRole>();
+  if (email) {
+    const { data: m } = await supabase.from('restaurant_members').select('restaurant_id, role').eq('email', email);
+    for (const r of m ?? []) roles.set((r as { restaurant_id: string }).restaurant_id, (r as { role: MemberRole }).role);
+  }
+  return (data ?? []).map(r => {
+    const row = r as RestaurantRow;
+    return toRestaurant(row, row.user_id === uid ? 'owner' : roles.get(row.id) ?? 'viewer');
+  });
+}
+
+// ---------- Compartilhamento ----------
+
+export async function getMembers(restaurantId: string): Promise<RestaurantMember[]> {
+  const { data, error } = await supabase
+    .from('restaurant_members')
+    .select('restaurant_id, email, role, created_at')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(r => ({ restaurantId: r.restaurant_id, email: r.email, role: r.role, createdAt: r.created_at }));
+}
+
+export async function saveMember(restaurantId: string, email: string, role: MemberRole): Promise<void> {
+  const { error } = await supabase
+    .from('restaurant_members')
+    .upsert({ restaurant_id: restaurantId, email: email.trim().toLowerCase(), role });
+  if (error) throw error;
+}
+
+export async function removeMember(restaurantId: string, email: string): Promise<void> {
+  const { error } = await supabase.from('restaurant_members').delete().eq('restaurant_id', restaurantId).eq('email', email);
+  if (error) throw error;
 }
 
 export async function createRestaurant(input: { name: string; currency: Currency; logo?: string | null }): Promise<Restaurant> {

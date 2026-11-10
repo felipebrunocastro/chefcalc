@@ -5,6 +5,8 @@ create schema if not exists auth;
 create table if not exists auth.users (id uuid primary key);
 create or replace function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create or replace function auth.jwt() returns jsonb language sql stable as
+  $$ select jsonb_build_object('email', current_setting('request.jwt.claim.email', true)) $$;
 do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
 grant usage on schema public, auth to authenticated;
 
@@ -19,7 +21,8 @@ insert into public.dishes (id, user_id, data) values
   ('dish-a1', 'aaaaaaaa-0000-0000-0000-000000000001', '{"id":"dish-a1","itens":[{"ingredienteId":"ing-a1","quantidadeUsada":1,"unidade":"kg"}]}');
 
 \ir ../migrations/002_restaurants.sql
-\ir ../migrations/002_restaurants.sql
+\ir ../migrations/003_sharing.sql
+\ir ../migrations/003_sharing.sql
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
 do $$
@@ -75,6 +78,84 @@ begin
     insert into public.ingredients (id, restaurant_id, data) values ('ing-hack', foreign_r, '{}');
     raise exception 'B não deveria gravar no restaurante de A';
   exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- ---------- 003: compartilhamento ----------
+insert into auth.users values ('cccccccc-0000-0000-0000-000000000003'), ('dddddddd-0000-0000-0000-000000000004');
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+do $$
+declare ra uuid;
+begin
+  select id into ra from public.restaurants where name = 'Meu restaurante';
+  insert into public.restaurant_members (restaurant_id, email, role) values (ra, 'viewer@test.com', 'viewer'), (ra, 'fin@test.com', 'finance');
+  insert into public.finance_months (restaurant_id, period, entries) values (ra, '2026-11', '[]');
+end $$;
+
+-- Viewer: vê o restaurante e as fichas, não vê finanças, não grava nada
+select set_config('request.jwt.claim.sub', 'cccccccc-0000-0000-0000-000000000003', false);
+select set_config('request.jwt.claim.email', 'Viewer@Test.com', false);
+do $$
+declare n int; ra uuid;
+begin
+  select count(*) into n from public.restaurants; assert n = 1, 'viewer vê só o restaurante compartilhado, veio ' || n;
+  select id into ra from public.restaurants;
+  select count(*) into n from public.dishes; assert n = 1, 'viewer vê as fichas';
+  select count(*) into n from public.ingredients; assert n = 1, 'viewer lê insumos para o custo';
+  select count(*) into n from public.finance_months; assert n = 0, 'viewer não vê financeiro';
+  update public.dishes set data = '{}' ; get diagnostics n = row_count; assert n = 0, 'viewer não edita ficha';
+  delete from public.dishes; get diagnostics n = row_count; assert n = 0, 'viewer não apaga ficha';
+  update public.restaurants set budget = '[1]'; get diagnostics n = row_count; assert n = 0, 'viewer não edita orçamento';
+  begin
+    insert into public.dishes (id, user_id, restaurant_id, data) values ('dish-v', 'cccccccc-0000-0000-0000-000000000003', ra, '{}');
+    raise exception 'viewer não deveria criar ficha';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.finance_months (restaurant_id, period) values (ra, '2026-12');
+    raise exception 'viewer não deveria gravar financeiro';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.restaurant_members (restaurant_id, email, role) values (ra, 'x@test.com', 'finance');
+    raise exception 'viewer não deveria convidar';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+-- Finance: vê fichas, edita financeiro e orçamento, não muda nome nem fichas
+select set_config('request.jwt.claim.sub', 'dddddddd-0000-0000-0000-000000000004', false);
+select set_config('request.jwt.claim.email', 'fin@test.com', false);
+do $$
+declare n int; ra uuid;
+begin
+  select id into ra from public.restaurants; 
+  select count(*) into n from public.dishes; assert n = 1, 'finance vê as fichas';
+  update public.dishes set data = '{}'; get diagnostics n = row_count; assert n = 0, 'finance não edita ficha';
+  update public.finance_months set entries = '[{"valor":5}]' where restaurant_id = ra; get diagnostics n = row_count; assert n = 1, 'finance edita mês existente';
+  insert into public.finance_months (restaurant_id, period, user_id) values (ra, '2026-12', 'dddddddd-0000-0000-0000-000000000004');
+  update public.restaurants set budget = '[{"valor":1}]', updated_at = now() where id = ra; get diagnostics n = row_count; assert n = 1, 'finance edita orçamento';
+  begin
+    update public.restaurants set name = 'hack' where id = ra;
+    raise exception 'finance não deveria renomear';
+  exception when insufficient_privilege then null; end;
+end $$;
+
+-- Dono continua vendo os meses gravados pela pessoa de finanças; removendo o acesso, ela perde tudo
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.finance_months where period in ('2026-11', '2026-12'); assert n = 2, 'dono vê meses gravados pelo membro';
+  delete from public.restaurant_members where email = 'fin@test.com';
+end $$;
+select set_config('request.jwt.claim.sub', 'dddddddd-0000-0000-0000-000000000004', false);
+select set_config('request.jwt.claim.email', 'fin@test.com', false);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.restaurants; assert n = 0, 'acesso removido';
+  select count(*) into n from public.finance_months; assert n = 0, 'acesso removido (financeiro)';
 end $$;
 reset role;
 select 'MIGRATION TESTS PASSED' as result;

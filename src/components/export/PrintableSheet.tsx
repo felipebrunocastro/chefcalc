@@ -21,7 +21,7 @@ export function PrintableSheet({ dish, ingredients, restaurant, mode, lang, t }:
     <article className="print-sheet bg-white text-slate-900 text-[12px] leading-snug">
       <header className="flex items-center gap-4 border-b-2 border-navy-900 pb-3 mb-4">
         {restaurant.logo ? (
-          <img src={restaurant.logo} alt={restaurant.name} className="h-16 max-w-[2in] w-auto object-contain" />
+          <img src={restaurant.logo} alt={restaurant.name} className="h-16 max-w-[2in] w-auto object-contain rounded-xl" />
         ) : (
           <span className="text-xl font-bold text-navy-900">{restaurant.name}</span>
         )}
