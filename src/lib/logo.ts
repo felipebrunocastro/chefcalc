@@ -3,7 +3,7 @@
 const MAX = 512;
 const MAX_SVG_BYTES = 300_000;
 
-export async function fileToLogoDataUrl(file: File): Promise<string> {
+export async function fileToLogoDataUrl(file: File, max = MAX, quality = 0.9): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('not an image');
   if (file.type === 'image/svg+xml') {
     if (file.size > MAX_SVG_BYTES) throw new Error('svg too large');
@@ -11,7 +11,7 @@ export async function fileToLogoDataUrl(file: File): Promise<string> {
   }
   const src = await readAsDataUrl(file);
   const img = await loadImage(src);
-  const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+  const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.max(1, Math.round(img.naturalWidth * scale));
   const h = Math.max(1, Math.round(img.naturalHeight * scale));
   const canvas = document.createElement('canvas');
@@ -19,7 +19,7 @@ export async function fileToLogoDataUrl(file: File): Promise<string> {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas');
   ctx.drawImage(img, 0, 0, w, h);
-  const webp = canvas.toDataURL('image/webp', 0.9);
+  const webp = canvas.toDataURL('image/webp', quality);
   return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png');
 }
 

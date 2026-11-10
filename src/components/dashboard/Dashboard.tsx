@@ -81,7 +81,10 @@ export function Dashboard({ onNavigate, onPrint, readOnly = false }: Props) {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-navy-900">{t('dashboard.title')}</h1>
+        <div className="flex items-center gap-3">
+          <Mascot variant="sheets" size={72} decorative className="shrink-0 -my-2" />
+          <h1 className="text-2xl font-bold text-navy-900">{t('dashboard.title')}</h1>
+        </div>
         <div className="flex flex-wrap gap-2">
         {selected.size > 0 && (
           <button onClick={() => onPrint([...selected])} className="btn-secondary">

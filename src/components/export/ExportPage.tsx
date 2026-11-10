@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Printer, Download, Upload, ClipboardList, ChefHat, FileDown } from 'lucide-react';
+import { Mascot } from '../ui/Mascot';
+import { Printer, Download, Upload, ClipboardList, ChefHat } from 'lucide-react';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
 import { useRestaurant } from '../../hooks/useRestaurant';
@@ -66,7 +67,7 @@ export function ExportPage({ initialSelection }: { initialSelection?: string[] }
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <FileDown size={24} className="text-blue-600" aria-hidden="true" />
+        <Mascot variant="sheets" size={72} decorative className="shrink-0 -my-2" />
         <h1 className="text-2xl font-bold text-navy-900">{t('print.title')}</h1>
       </div>
 

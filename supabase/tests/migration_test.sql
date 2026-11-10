@@ -23,6 +23,8 @@ insert into public.dishes (id, user_id, data) values
 \ir ../migrations/002_restaurants.sql
 \ir ../migrations/003_sharing.sql
 \ir ../migrations/003_sharing.sql
+\ir ../migrations/004_profile_goals.sql
+\ir ../migrations/004_profile_goals.sql
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
 do $$
@@ -92,6 +94,8 @@ begin
   select id into ra from public.restaurants where name = 'Meu restaurante';
   insert into public.restaurant_members (restaurant_id, email, role) values (ra, 'viewer@test.com', 'viewer'), (ra, 'fin@test.com', 'finance');
   insert into public.finance_months (restaurant_id, period, entries) values (ra, '2026-11', '[]');
+  insert into public.restaurant_private (restaurant_id, data) values (ra, '{"consultingNotes":"segredo"}');
+  update public.restaurants set profile = '{"city":"Miami"}' where id = ra;
 end $$;
 
 -- Viewer: vê o restaurante e as fichas, não vê finanças, não grava nada
@@ -105,6 +109,8 @@ begin
   select count(*) into n from public.dishes; assert n = 1, 'viewer vê as fichas';
   select count(*) into n from public.ingredients; assert n = 1, 'viewer lê insumos para o custo';
   select count(*) into n from public.finance_months; assert n = 0, 'viewer não vê financeiro';
+  select count(*) into n from public.restaurant_private; assert n = 0, 'viewer não lê dados privados';
+  select count(*) into n from public.restaurants where profile->>'city' = 'Miami'; assert n = 1, 'viewer lê perfil público';
   update public.dishes set data = '{}' ; get diagnostics n = row_count; assert n = 0, 'viewer não edita ficha';
   delete from public.dishes; get diagnostics n = row_count; assert n = 0, 'viewer não apaga ficha';
   update public.restaurants set budget = '[1]'; get diagnostics n = row_count; assert n = 0, 'viewer não edita orçamento';
@@ -134,6 +140,12 @@ begin
   update public.finance_months set entries = '[{"valor":5}]' where restaurant_id = ra; get diagnostics n = row_count; assert n = 1, 'finance edita mês existente';
   insert into public.finance_months (restaurant_id, period, user_id) values (ra, '2026-12', 'dddddddd-0000-0000-0000-000000000004');
   update public.restaurants set budget = '[{"valor":1}]', updated_at = now() where id = ra; get diagnostics n = row_count; assert n = 1, 'finance edita orçamento';
+  update public.restaurants set goals = '{"scenarios":[5,8,10]}' where id = ra; get diagnostics n = row_count; assert n = 1, 'finance edita metas';
+  begin
+    update public.restaurants set profile = '{"city":"x"}' where id = ra;
+    raise exception 'finance não deveria editar o perfil';
+  exception when insufficient_privilege then null; end;
+  select count(*) into n from public.restaurant_private; assert n = 0, 'finance não lê dados privados';
   begin
     update public.restaurants set name = 'hack' where id = ra;
     raise exception 'finance não deveria renomear';

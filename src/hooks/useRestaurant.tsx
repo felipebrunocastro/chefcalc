@@ -14,7 +14,7 @@ interface RestaurantContextValue {
   /** Abre um restaurante (ou volta ao painel com null). Respeita alterações não salvas. */
   select: (id: string | null) => void;
   create: (input: { name: string; currency: Currency; logo?: string | null }) => Promise<Restaurant>;
-  update: (id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget'>>) => Promise<void>;
+  update: (id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget' | 'profile' | 'goals'>>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   reload: () => Promise<void>;
   /** Telas de edição marcam alterações não salvas aqui. */
@@ -83,7 +83,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     return r;
   }, [reload]);
 
-  const update = useCallback(async (id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget'>>) => {
+  const update = useCallback(async (id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget' | 'profile' | 'goals'>>) => {
     await repo.updateRestaurant(id, patch);
     setRestaurants(rs => rs.map(r => (r.id === id ? { ...r, ...patch } : r)));
   }, []);

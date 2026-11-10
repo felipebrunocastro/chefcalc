@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Save, Copy, RefreshCw, Lock, Unlock, Wallet, Info, Check, Truck } from 'lucide-react';
+import { Mascot } from '../ui/Mascot';
+import { Plus, Trash2, Save, Copy, RefreshCw, Lock, Unlock, Info, Check, Truck } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { getFinanceMonths, saveFinanceMonth } from '../../data/repo';
@@ -9,7 +10,10 @@ import {
   DELIVERY_PLATFORMS, SUGGESTED_BUDGET, actualTotals, budgetTotals, currentPeriod, deliveryTotals,
   formatPeriod, isEntered, monthState, varianceByCategory, type MonthState,
 } from '../../utils/finance';
-import type { BudgetItem, CostType, DeliveryPlatform, FinanceEntry, FinanceMonth } from '../../types';
+import type { BudgetItem, CostType, DeliveryPlatform, FinanceEntry, FinanceMonth, MonthSales, VariableKind } from '../../types';
+import { VARIABLE_KINDS, monthSalesTotal } from '../../utils/finance';
+import { salesChannels } from '../../utils/breakeven';
+import { GoalsSection } from './GoalsSection';
 
 const LOCALES = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' } as const;
 
@@ -60,7 +64,7 @@ export function FinancePage() {
   const addSuggested = () => setBudget(b => {
     const have = new Set(b.map(i => i.categoria.trim().toLowerCase()));
     const add = SUGGESTED_BUDGET
-      .map(s => ({ id: uuidv4(), categoria: t(`finance.cat.${s.key}`), descricao: '', tipo: s.tipo, valor: 0 }))
+      .map(s => ({ id: uuidv4(), categoria: t(`finance.cat.${s.key}`), descricao: '', tipo: s.tipo, valor: 0, natureza: s.natureza }))
       .filter(i => !have.has(i.categoria.toLowerCase()));
     return [...b, ...add];
   });
@@ -103,7 +107,7 @@ export function FinancePage() {
   const addEntry = () => patchEntries(es => [...es, { id: uuidv4(), categoria: '', descricao: '', tipo: 'variable', valor: null }]);
   const addPlatformEntry = (p: DeliveryPlatform, descricao: string) => patchEntries(es => [
     ...es,
-    { id: uuidv4(), categoria: DELIVERY_PLATFORMS.find(x => x.id === p)!.label, descricao, tipo: 'variable', valor: null, plataforma: p },
+    { id: uuidv4(), categoria: DELIVERY_PLATFORMS.find(x => x.id === p)!.label, descricao, tipo: 'variable', valor: null, plataforma: p, natureza: 'fees' },
   ]);
 
   const copyBudget = () => setDraft(d => {
@@ -111,7 +115,7 @@ export function FinancePage() {
     const have = new Set(d.entries.map(e => `${e.categoria.trim().toLowerCase()}|${e.descricao.trim().toLowerCase()}`));
     const add: FinanceEntry[] = savedBudget
       .filter(b => !have.has(`${b.categoria.trim().toLowerCase()}|${b.descricao.trim().toLowerCase()}`))
-      .map(b => ({ id: uuidv4(), categoria: b.categoria, descricao: b.descricao, tipo: b.tipo, valor: null }));
+      .map(b => ({ id: uuidv4(), categoria: b.categoria, descricao: b.descricao, tipo: b.tipo, valor: null, natureza: b.natureza, parteFixa: b.tipo === 'mixed' ? b.parteFixa : undefined }));
     return { ...d, estimateSnapshot: d.estimateSnapshot ?? structuredClone(savedBudget), entries: [...d.entries, ...add] };
   });
 
@@ -146,7 +150,7 @@ export function FinancePage() {
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Wallet size={24} className="text-blue-600" aria-hidden="true" />
+        <Mascot variant="finance" size={72} decorative className="shrink-0 -my-2" />
         <h1 className="text-2xl font-bold text-navy-900">{t('finance.title')}</h1>
         <span className="ml-auto text-xs font-medium text-slate-500 bg-white border border-blue-100 rounded-md px-2 py-1">{restaurant.currency}</span>
       </div>
@@ -162,12 +166,13 @@ export function FinancePage() {
         </div>
 
         <div className="overflow-x-auto -mx-4 md:mx-0">
-          <table className="w-full text-sm min-w-[560px]">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="text-left text-xs text-slate-500 border-b border-blue-100">
                 <th className="py-2 px-2 font-medium">{t('finance.category')}</th>
                 <th className="py-2 px-2 font-medium">{t('finance.description')}</th>
                 <th className="py-2 px-2 font-medium w-32">{t('finance.type')}</th>
+                <th className="py-2 px-2 font-medium w-48">{t('finance.nature')}</th>
                 <th className="py-2 px-2 font-medium w-36 text-right">{t('finance.value')}</th>
                 <th className="w-10"><span className="sr-only">{t('finance.remove')}</span></th>
               </tr>
@@ -181,8 +186,10 @@ export function FinancePage() {
                     <select aria-label={t('finance.type')} value={i.tipo} onChange={e => setBudgetItem(i.id, { tipo: e.target.value as CostType })} className="field !py-1.5">
                       <option value="fixed">{t('finance.fixed')}</option>
                       <option value="variable">{t('finance.variable')}</option>
+                      <option value="mixed">{t('finance.mixed')}</option>
                     </select>
                   </td>
+                  <td className="p-1"><NatureCells item={i} budget onChange={patch => setBudgetItem(i.id, patch)} /></td>
                   <td className="p-1"><input aria-label={t('finance.value')} type="number" min="0" step="0.01" inputMode="decimal" value={i.valor} onChange={e => setBudgetItem(i.id, { valor: Number(e.target.value) })} className="field !py-1.5 text-right font-mono" /></td>
                   <td className="p-1 text-center"><button onClick={() => setBudget(b => b.filter(x => x.id !== i.id))} className="btn-ghost hover:!text-red-600" aria-label={t('finance.remove')}><Trash2 size={15} /></button></td>
                 </tr>
@@ -204,6 +211,7 @@ export function FinancePage() {
           <Stat label={t('finance.subtotalVariable')} value={money(bt.variable)} />
           <Stat label={t('finance.total')} value={money(bt.total)} strong />
         </dl>
+        {(bt.variablePct ?? 0) > 0 && <p className="text-xs text-slate-600 mt-2">{t('finance.variablePctNote', { pct: (bt.variablePct ?? 0).toFixed(1) })}</p>}
       </section>
 
       {/* ---------------- Tabela 2: real ---------------- */}
@@ -236,19 +244,20 @@ export function FinancePage() {
 
         <datalist id="budget-cats">{budgetCategories.map(c => <option key={c} value={c} />)}</datalist>
         <div className="overflow-x-auto -mx-4 md:mx-0">
-          <table className="w-full text-sm min-w-[560px]">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="text-left text-xs text-slate-500 border-b border-blue-100">
                 <th className="py-2 px-2 font-medium">{t('finance.category')}</th>
                 <th className="py-2 px-2 font-medium">{t('finance.description')}</th>
                 <th className="py-2 px-2 font-medium w-32">{t('finance.type')}</th>
+                <th className="py-2 px-2 font-medium w-48">{t('finance.nature')}</th>
                 <th className="py-2 px-2 font-medium w-36 text-right">{t('finance.amount')}</th>
                 <th className="w-10"><span className="sr-only">{t('finance.remove')}</span></th>
               </tr>
             </thead>
             <tbody>
               {general.length === 0 && (
-                <tr><td colSpan={5} className="py-4 text-center text-slate-400">{t('finance.noEntries')}</td></tr>
+                <tr><td colSpan={6} className="py-4 text-center text-slate-400">{t('finance.noEntries')}</td></tr>
               )}
               {general.map(e => (
                 <tr key={e.id} className="border-b border-slate-100">
@@ -258,8 +267,10 @@ export function FinancePage() {
                     <select aria-label={t('finance.type')} value={e.tipo} onChange={ev => setEntry(e.id, { tipo: ev.target.value as CostType })} className="field !py-1.5">
                       <option value="fixed">{t('finance.fixed')}</option>
                       <option value="variable">{t('finance.variable')}</option>
+                      <option value="mixed">{t('finance.mixed')}</option>
                     </select>
                   </td>
+                  <td className="p-1"><NatureCells item={e} onChange={patch => setEntry(e.id, patch)} /></td>
                   <td className="p-1"><AmountInput entry={e} onChange={v => setEntry(e.id, { valor: v })} /></td>
                   <td className="p-1 text-center"><button onClick={() => removeEntry(e.id)} className="btn-ghost hover:!text-red-600" aria-label={t('finance.remove')}><Trash2 size={15} /></button></td>
                 </tr>
@@ -301,6 +312,13 @@ export function FinancePage() {
           </div>
           <p className="text-sm mt-2 text-right">{t('finance.deliveryTotal')}: <b className="font-mono text-navy-900">{money(delivery.total)}</b></p>
         </div>
+
+        <SalesInputs
+          sales={draft.sales ?? {}}
+          entries={entries}
+          channels={salesChannels(restaurant.profile)}
+          onChange={sales => setDraft(d => (d ? { ...d, sales } : d))}
+        />
 
         <div className="flex flex-wrap items-center gap-3 mt-4">
           <dl className="grid grid-cols-3 gap-2 text-sm flex-1 min-w-[18rem]">
@@ -361,6 +379,8 @@ export function FinancePage() {
         </div>
       </section>
 
+      <GoalsSection months={months} />
+
       {/* ---------------- Histórico ---------------- */}
       <section className="card p-4 md:p-5" aria-labelledby="hist-h">
         <h2 id="hist-h" className="font-semibold text-navy-900 mb-3">{t('finance.history')}</h2>
@@ -410,6 +430,88 @@ function Stat({ label, value, strong = false }: { label: string; value: string; 
     <div className={`rounded-xl px-3 py-2 ${strong ? 'bg-navy-900 text-white' : 'bg-blue-50 text-navy-900'}`}>
       <dt className={`text-xs ${strong ? 'text-blue-200' : 'text-slate-500'}`}>{label}</dt>
       <dd className="font-mono font-semibold">{value}</dd>
+    </div>
+  );
+}
+
+function NatureCells({ item, budget = false, onChange }: {
+  item: { tipo: CostType; natureza?: VariableKind; parteFixa?: number; unidade?: 'money' | 'pct' };
+  budget?: boolean;
+  onChange: (patch: { natureza?: VariableKind; parteFixa?: number; unidade?: 'money' | 'pct' }) => void;
+}) {
+  const { t } = useTranslation();
+  if (item.tipo === 'fixed') return <span className="text-slate-300 px-2">—</span>;
+  return (
+    <div className="flex gap-1">
+      <select aria-label={t('finance.nature')} value={item.natureza ?? 'other'} onChange={e => onChange({ natureza: e.target.value as VariableKind })} className="field !py-1.5 !px-2 text-xs">
+        {VARIABLE_KINDS.map(k => <option key={k} value={k}>{t(`finance.kinds.${k}`)}</option>)}
+      </select>
+      {item.tipo === 'mixed' && (
+        <input aria-label={t('finance.fixedPart')} placeholder={t('finance.fixedPart')} title={t('finance.fixedPart')} type="number" min="0" step="0.01"
+          value={item.parteFixa ?? ''} onChange={e => onChange({ parteFixa: e.target.value === '' ? undefined : Number(e.target.value) })}
+          className="field !py-1.5 !px-2 w-24 text-right font-mono text-xs" />
+      )}
+      {budget && item.tipo === 'variable' && (
+        <select aria-label={t('finance.unitMoney')} value={item.unidade ?? 'money'} onChange={e => onChange({ unidade: e.target.value as 'money' | 'pct' })} className="field !py-1.5 !px-2 w-24 text-xs">
+          <option value="money">{t('finance.unitMoney')}</option>
+          <option value="pct">{t('finance.unitPct')}</option>
+        </select>
+      )}
+    </div>
+  );
+}
+
+function SalesInputs({ sales, entries, channels, onChange }: {
+  sales: MonthSales; entries: FinanceEntry[]; channels: ReturnType<typeof salesChannels>; onChange: (s: MonthSales) => void;
+}) {
+  const { t } = useTranslation();
+  const num = (v: string) => (v === '' ? null : Number(v));
+  const total = monthSalesTotal({ restaurantId: '', period: '', status: 'open', estimateSnapshot: null, entries: [], sales });
+  const label = (c: { id: string; name?: string }) => c.name || t(`channels.${c.id}`);
+  const feesOf = (id: string) => entries.filter(e => e.plataforma === id && typeof e.valor === 'number').reduce((a, e) => a + (e.valor as number), 0);
+  return (
+    <div className="mt-6 space-y-4">
+      <div>
+        <h3 className="font-semibold text-navy-900">{t('sales.title')}</h3>
+        <p className="text-xs text-slate-500 mb-3">{t('sales.hint')}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {channels.map(c => (
+            <div key={c.id} className="rounded-xl border border-blue-100 p-2.5">
+              <label className="text-xs font-medium text-navy-900" htmlFor={`sale-${c.id}`}>{label(c)}</label>
+              <input id={`sale-${c.id}`} type="number" step="0.01" inputMode="decimal" placeholder={t('sales.notInformed')}
+                value={sales.channels?.[c.id] ?? ''} onChange={e => onChange({ ...sales, channels: { ...(sales.channels ?? {}), [c.id]: num(e.target.value) } })}
+                className="field !py-1.5 text-right font-mono placeholder:italic placeholder:text-slate-400 mt-1" />
+              {c.delivery && (
+                <>
+                  <label className="text-[11px] text-slate-500 mt-2 block" htmlFor={`dep-${c.id}`}>{t('sales.deposit')}</label>
+                  <input id={`dep-${c.id}`} type="number" step="0.01" inputMode="decimal" placeholder="—"
+                    value={sales.deposits?.[c.id] ?? ''} onChange={e => onChange({ ...sales, deposits: { ...(sales.deposits ?? {}), [c.id]: num(e.target.value) } })}
+                    className="field !py-1 text-right font-mono text-xs" />
+                  {typeof sales.channels?.[c.id] === 'number' && typeof sales.deposits?.[c.id] === 'number' && (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {t('sales.expected')}: <span className="font-mono">{formatCurrency((sales.channels![c.id] as number) - feesOf(c.id))}</span>
+                      {' · '}{t('sales.reconciliation')}: <span className="font-mono">{formatCurrency((sales.deposits![c.id] as number) - ((sales.channels![c.id] as number) - feesOf(c.id)))}</span>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-sm mt-2 text-right">{t('sales.total')}: <b className="font-mono text-navy-900">{total.informed ? formatCurrency(total.total) : t('sales.notInformed')}</b></p>
+      </div>
+      <div>
+        <h3 className="font-semibold text-navy-900 text-sm">{t('sales.inventoryTitle')}</h3>
+        <p className="text-xs text-slate-500 mb-2">{t('sales.inventoryHint')}</p>
+        <div className="grid grid-cols-2 gap-3 max-w-md">
+          {(['inventoryStart', 'inventoryEnd'] as const).map(k => (
+            <div key={k}>
+              <label className="label" htmlFor={`inv-${k}`}>{t(`sales.${k}`)}</label>
+              <input id={`inv-${k}`} type="number" step="0.01" value={sales[k] ?? ''} onChange={e => onChange({ ...sales, [k]: num(e.target.value) })} className="field !py-1.5 text-right font-mono" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

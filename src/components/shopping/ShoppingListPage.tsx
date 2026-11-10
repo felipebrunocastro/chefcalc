@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShoppingCart, Search, Check, RefreshCw } from 'lucide-react';
+import { Mascot } from '../ui/Mascot';
+import { Search, Check, RefreshCw } from 'lucide-react';
 import { useIngredients } from '../../hooks/useIngredients';
 import { useDishes } from '../../hooks/useDishes';
 import { formatCurrency, unitCostOf } from '../../utils/calculations';
@@ -63,7 +64,7 @@ export function ShoppingListPage() {
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-2">
-        <ShoppingCart size={24} className="text-blue-600" />
+        <Mascot variant="shopping" size={72} decorative className="shrink-0 -my-2" />
         <h1 className="text-2xl font-bold text-gray-900">{t('shopping.title')}</h1>
       </div>
       <p className="text-sm text-gray-500 mb-6">{t('shopping.subtitle')}</p>

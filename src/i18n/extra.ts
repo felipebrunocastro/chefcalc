@@ -13,7 +13,7 @@ const pt = {
   restaurants: {
     sharedWithMe: 'Compartilhados comigo', 
     title: 'Meus restaurantes', welcome: 'Olá, chef! Escolha um cliente para trabalhar.', add: 'Cadastrar restaurante',
-    new: 'Novo restaurante', edit: 'Editar restaurante', name: 'Nome do restaurante', nameRequired: 'Informe o nome do restaurante.',
+    new: 'Novo restaurante', edit: 'Editar restaurante', name: 'Nome comercial', nameRequired: 'Informe o nome do restaurante.',
     currency: 'Moeda padrão', currencyHint: 'Trocar a moeda muda só a formatação. Nenhum valor é convertido.',
     logo: 'Logo', uploadLogo: 'Enviar logo', replaceLogo: 'Trocar logo', removeLogo: 'Remover logo',
     logoHint: 'PNG, JPG, WEBP ou SVG. A imagem é reduzida automaticamente.', logoError: 'Não foi possível ler esta imagem.',
@@ -94,7 +94,7 @@ const en: Dict = {
   restaurants: {
     sharedWithMe: 'Shared with me', 
     title: 'My restaurants', welcome: 'Hi, chef! Pick a client to work on.', add: 'Add restaurant',
-    new: 'New restaurant', edit: 'Edit restaurant', name: 'Restaurant name', nameRequired: 'Enter the restaurant name.',
+    new: 'New restaurant', edit: 'Edit restaurant', name: 'Business name', nameRequired: 'Enter the restaurant name.',
     currency: 'Default currency', currencyHint: 'Changing the currency only changes formatting. No values are converted.',
     logo: 'Logo', uploadLogo: 'Upload logo', replaceLogo: 'Replace logo', removeLogo: 'Remove logo',
     logoHint: 'PNG, JPG, WEBP or SVG. The image is resized automatically.', logoError: 'Could not read this image.',
@@ -173,7 +173,7 @@ const es: Dict = {
   restaurants: {
     sharedWithMe: 'Compartidos conmigo', 
     title: 'Mis restaurantes', welcome: '¡Hola, chef! Elige un cliente para trabajar.', add: 'Registrar restaurante',
-    new: 'Nuevo restaurante', edit: 'Editar restaurante', name: 'Nombre del restaurante', nameRequired: 'Indica el nombre del restaurante.',
+    new: 'Nuevo restaurante', edit: 'Editar restaurante', name: 'Nombre comercial', nameRequired: 'Indica el nombre del restaurante.',
     currency: 'Moneda predeterminada', currencyHint: 'Cambiar la moneda solo cambia el formato. Ningún valor se convierte.',
     logo: 'Logo', uploadLogo: 'Subir logo', replaceLogo: 'Cambiar logo', removeLogo: 'Quitar logo',
     logoHint: 'PNG, JPG, WEBP o SVG. La imagen se reduce automáticamente.', logoError: 'No se pudo leer esta imagen.',

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Calculator, Scale, Printer, Menu, X, LogOut, Wallet, ArrowLeftRight, ChefHat } from 'lucide-react';
+import { Store, LayoutDashboard, Package, ShoppingCart, ClipboardList, Calculator, Scale, Printer, Menu, X, LogOut, Wallet, ArrowLeftRight, ChefHat } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { useAuth } from '../hooks/useAuth';
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { view: 'simulator' as AppView, icon: Calculator, key: 'nav.simulator' },
   { view: 'export' as AppView, icon: Printer, key: 'nav.export' },
   { view: 'converter' as AppView, icon: Scale, key: 'converter.navShort' },
+  { view: 'profile' as AppView, icon: Store, key: 'nav.profile' },
 ];
 // Acesso compartilhado vê só o que o papel permite.
 const ALLOWED: Record<RestaurantRole, AppView[] | null> = {

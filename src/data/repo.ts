@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Ingredient, Dish, Restaurant, FinanceMonth, BudgetItem, MemberRole, RestaurantMember, RestaurantRole } from '../types';
+import type { Ingredient, Dish, Restaurant, FinanceMonth, BudgetItem, MemberRole, RestaurantMember, RestaurantRole, RestaurantProfile, GoalsSettings, RestaurantPrivate, MonthSales } from '../types';
 import type { Currency } from '../lib/currency';
 
 // Todas as linhas são protegidas por RLS no Supabase: o usuário só alcança
@@ -17,6 +17,7 @@ async function currentUserId(): Promise<string | undefined> {
 interface RestaurantRow {
   id: string; user_id?: string; name: string; currency: string; logo: string | null;
   budget: BudgetItem[] | null; created_at: string;
+  profile?: RestaurantProfile | null; goals?: GoalsSettings | null; // colunas da migração 004
 }
 
 const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaurant => ({
@@ -27,6 +28,8 @@ const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaur
   logo: r.logo,
   budget: Array.isArray(r.budget) ? r.budget : [],
   createdAt: r.created_at,
+  profile: r.profile && typeof r.profile === 'object' ? r.profile : {},
+  goals: r.goals && typeof r.goals === 'object' ? r.goals : {},
 });
 
 // Restaurantes próprios + os compartilhados comigo (o RLS devolve os dois).
@@ -36,7 +39,7 @@ export async function getRestaurants(): Promise<Restaurant[]> {
   const email = (u.user?.email ?? '').toLowerCase();
   const { data, error } = await supabase
     .from('restaurants')
-    .select('id, user_id, name, currency, logo, budget, created_at')
+    .select('*')
     .order('created_at', { ascending: true });
   if (error) throw error;
   // Papéis nos restaurantes compartilhados. Tolerante: antes da migração 003 a tabela não existe.
@@ -80,18 +83,20 @@ export async function createRestaurant(input: { name: string; currency: Currency
   const { data, error } = await supabase
     .from('restaurants')
     .insert({ user_id, name: input.name.trim(), currency: input.currency, logo: input.logo ?? null })
-    .select('id, name, currency, logo, budget, created_at')
+    .select('*')
     .single();
   if (error) throw error;
   return toRestaurant(data as RestaurantRow);
 }
 
-export async function updateRestaurant(id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget'>>): Promise<void> {
+export async function updateRestaurant(id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget' | 'profile' | 'goals'>>): Promise<void> {
   const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.name !== undefined) row.name = patch.name.trim();
   if (patch.currency !== undefined) row.currency = patch.currency; // só formatação: valores não são convertidos
   if (patch.logo !== undefined) row.logo = patch.logo;
   if (patch.budget !== undefined) row.budget = patch.budget;
+  if (patch.profile !== undefined) row.profile = patch.profile;
+  if (patch.goals !== undefined) row.goals = patch.goals;
   const { error } = await supabase.from('restaurants').update(row).eq('id', id);
   if (error) throw error;
 }
@@ -168,6 +173,7 @@ export async function deleteDish(restaurantId: string, id: string): Promise<void
 interface FinanceRow {
   restaurant_id: string; period: string; status: 'open' | 'closed';
   estimate_snapshot: BudgetItem[] | null; entries: FinanceMonth['entries'] | null;
+  sales?: MonthSales | null;
 }
 
 const toMonth = (r: FinanceRow): FinanceMonth => ({
@@ -176,12 +182,13 @@ const toMonth = (r: FinanceRow): FinanceMonth => ({
   status: r.status,
   estimateSnapshot: r.estimate_snapshot,
   entries: Array.isArray(r.entries) ? r.entries : [],
+  sales: r.sales && typeof r.sales === 'object' ? r.sales : {},
 });
 
 export async function getFinanceMonths(restaurantId: string): Promise<FinanceMonth[]> {
   const { data, error } = await supabase
     .from('finance_months')
-    .select('restaurant_id, period, status, estimate_snapshot, entries')
+    .select('*')
     .eq('restaurant_id', restaurantId)
     .order('period', { ascending: false });
   if (error) throw error;
@@ -190,7 +197,7 @@ export async function getFinanceMonths(restaurantId: string): Promise<FinanceMon
 
 export async function saveFinanceMonth(m: FinanceMonth): Promise<void> {
   const user_id = await currentUserId();
-  const { error } = await supabase.from('finance_months').upsert({
+  const row: Record<string, unknown> = {
     restaurant_id: m.restaurantId,
     period: m.period,
     user_id,
@@ -198,6 +205,23 @@ export async function saveFinanceMonth(m: FinanceMonth): Promise<void> {
     estimate_snapshot: m.estimateSnapshot,
     entries: m.entries,
     updated_at: new Date().toISOString(),
-  });
+  };
+  // A coluna sales vem da migração 004; só é enviada quando há vendas lançadas.
+  if (m.sales && Object.keys(m.sales).length > 0) row.sales = m.sales;
+  const { error } = await supabase.from('finance_months').upsert(row);
+  if (error) throw error;
+}
+
+// ---------- Dados privados do restaurante (somente o dono) ----------
+
+export async function getRestaurantPrivate(restaurantId: string): Promise<RestaurantPrivate> {
+  const { data, error } = await supabase.from('restaurant_private').select('data').eq('restaurant_id', restaurantId).maybeSingle();
+  if (error) throw error;
+  return (data?.data as RestaurantPrivate) ?? {};
+}
+
+export async function saveRestaurantPrivate(restaurantId: string, data: RestaurantPrivate): Promise<void> {
+  const { error } = await supabase.from('restaurant_private')
+    .upsert({ restaurant_id: restaurantId, data, updated_at: new Date().toISOString() });
   if (error) throw error;
 }

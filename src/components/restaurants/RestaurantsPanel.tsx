@@ -99,7 +99,7 @@ export function RestaurantsPanel() {
           onDelete={form.edit ? () => { setToDelete(form.edit!); setForm(null); } : undefined}
           onSubmit={async v => {
             if (form.edit) await update(form.edit.id, v);
-            else await create(v);
+            else { const r = await create(v); setForm(null); select(r.id); return; }
             setForm(null);
           }}
         />

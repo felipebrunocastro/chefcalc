@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Mascot } from '../ui/Mascot';
 import { Plus, Edit2, Trash2, Search, Package } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useIngredients } from '../../hooks/useIngredients';
@@ -96,7 +97,10 @@ export function IngredientsPage() {
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('ingredients.title')}</h1>
+        <div className="flex items-center gap-3">
+          <Mascot variant="ingredients" size={72} decorative className="shrink-0 -my-2" />
+          <h1 className="text-2xl font-bold text-gray-900">{t('ingredients.title')}</h1>
+        </div>
         <button
           onClick={openNew}
           className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"

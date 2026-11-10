@@ -1,14 +1,21 @@
 import { useTranslation } from 'react-i18next';
 
-// Se existir src/assets/mascot/chef-custom.(svg|png|webp), ele substitui o mascote provisório.
-const custom = Object.values(
-  import.meta.glob('../../assets/mascot/chef-custom.{svg,png,webp}', { eager: true, query: '?url', import: 'default' }),
-)[0] as string | undefined;
+// Mascotes em src/assets/mascot/chef-<variante>.(svg|png|webp). "custom" é o principal;
+// cada página usa a sua variante e cai no principal (e depois no vetor provisório) se faltar.
+const files = import.meta.glob('../../assets/mascot/chef-*.{svg,png,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const byVariant: Record<string, string> = {};
+for (const [path, url] of Object.entries(files)) {
+  const m = path.match(/chef-([a-z]+)\.(svg|png|webp)$/);
+  if (m) byVariant[m[1]] = url;
+}
 
-interface Props { size?: number; className?: string; decorative?: boolean }
+export type MascotVariant = 'custom' | 'sheets' | 'ingredients' | 'shopping' | 'finance' | 'converter';
 
-export function Mascot({ size = 120, className = '', decorative = false }: Props) {
+interface Props { size?: number; className?: string; decorative?: boolean; variant?: MascotVariant }
+
+export function Mascot({ size = 120, className = '', decorative = false, variant = 'custom' }: Props) {
   const { t } = useTranslation();
+  const custom = byVariant[variant] ?? byVariant.custom;
   const a11y = decorative ? { 'aria-hidden': true as const } : { role: 'img', 'aria-label': t('mascot.alt') };
 
   if (custom) {

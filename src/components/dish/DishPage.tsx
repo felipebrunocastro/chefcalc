@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Mascot } from '../ui/Mascot';
 import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useDishes } from '../../hooks/useDishes';
@@ -140,6 +141,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
         <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
           <ArrowLeft size={18} />
         </button>
+        <Mascot variant="sheets" size={72} decorative className="shrink-0 -my-2" />
         <h1 className="text-xl font-bold text-gray-900">
           {dishId ? t('dish.edit') : t('dish.new')}
         </h1>

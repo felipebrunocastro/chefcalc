@@ -69,18 +69,23 @@ export interface CalculatedDish {
   foodCostDisponivel: boolean; // custo completo e preço > 0
 }
 
-export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance' | 'sheet';
+export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance' | 'sheet' | 'profile';
 
 // ---------- Modo consultor: restaurantes e financeiro ----------
 
-export type CostType = 'fixed' | 'variable';
+export type CostType = 'fixed' | 'variable' | 'mixed';
+// Natureza do custo variável (usada no ponto de equilíbrio).
+export type VariableKind = 'cogs' | 'packaging' | 'labor' | 'fees' | 'other';
 
 export interface BudgetItem {
   id: string;
   categoria: string;
   descricao: string;
   tipo: CostType;
-  valor: number;
+  valor: number;                 // valor mensal em dinheiro (ou % das vendas se unidade = 'pct')
+  unidade?: 'money' | 'pct';     // só para variáveis
+  parteFixa?: number;            // só para mistos: parte fixa do valor
+  natureza?: VariableKind;       // variáveis e parte variável dos mistos
 }
 
 export type DeliveryPlatform = 'doordash' | 'ubereats' | 'grubhub';
@@ -92,6 +97,17 @@ export interface FinanceEntry {
   tipo: CostType;
   valor: number | null;          // null = ainda não lançado (não soma)
   plataforma?: DeliveryPlatform; // lançamentos de comissão/taxa de delivery
+  parteFixa?: number;            // mistos
+  natureza?: VariableKind;
+}
+
+// Vendas líquidas do mês por canal: após descontos/devoluções, sem sales tax nem gorjetas
+// repassadas. Delivery: receita atribuível ao restaurante ANTES das comissões.
+export interface MonthSales {
+  channels?: Record<string, number | null>;
+  deposits?: Record<string, number | null>; // depósito líquido da plataforma (só conciliação)
+  inventoryStart?: number | null;           // estoque inicial (para CMV consumido)
+  inventoryEnd?: number | null;             // estoque final
 }
 
 export interface FinanceMonth {
@@ -100,6 +116,7 @@ export interface FinanceMonth {
   status: 'open' | 'closed';
   estimateSnapshot: BudgetItem[] | null;
   entries: FinanceEntry[];
+  sales?: MonthSales;
 }
 
 export interface Restaurant {
@@ -109,7 +126,9 @@ export interface Restaurant {
   logo?: string | null;          // data URL
   budget: BudgetItem[];
   createdAt: string;
-  role: RestaurantRole;          // papel do usuário logado neste restaurante
+  role: RestaurantRole;
+  profile: RestaurantProfile;
+  goals: GoalsSettings;          // papel do usuário logado neste restaurante
 }
 
 export type RestaurantRole = 'owner' | 'viewer' | 'finance';
@@ -120,4 +139,68 @@ export interface RestaurantMember {
   email: string;
   role: MemberRole;
   createdAt: string;
+}
+
+// ---------- Perfil do restaurante ----------
+
+export type EstablishmentType = 'restaurant' | 'snackbar' | 'cafe' | 'bakery' | 'confectionery' | 'foodtruck'
+  | 'kiosk' | 'icecream' | 'bar' | 'catering' | 'ghostkitchen' | 'other';
+export type ServiceMode = 'table' | 'counter' | 'buffet' | 'pickup' | 'delivery' | 'drivethru' | 'catering';
+export type ServiceSegment = 'full' | 'limited' | 'other';
+export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+export interface Shift { open: string; close: string }
+export interface DayHours { closed: boolean; shifts: Shift[] }
+export interface TruckLocation { id: string; name: string; address: string; days: Weekday[] }
+export interface ExtraLink { id: string; label: string; url: string }
+
+export interface DeliveryChannel {
+  id: string;                    // 'doordash' | 'ubereats' | 'grubhub' | 'own' | uuid (personalizado)
+  name: string;
+  active: boolean;
+  url: string;
+  feePct: number | null;         // taxa estimada (%) para simulações
+}
+
+export interface RestaurantProfile {
+  legalName?: string; unitName?: string; coverPhoto?: string | null;
+  shortDescription?: string; description?: string;
+  establishmentType?: EstablishmentType; establishmentTypeCustom?: string;
+  cuisines?: string[]; primaryCuisine?: string;
+  serviceModes?: ServiceMode[]; serviceSegment?: ServiceSegment;
+  address?: string; address2?: string; city?: string; state?: string; zip?: string; country?: string; timezone?: string;
+  hours?: Partial<Record<Weekday, DayHours>>;
+  truckLocations?: TruckLocation[];
+  businessPhone?: string; businessEmail?: string; whatsapp?: string;
+  website?: string; menuUrl?: string; directOrdersUrl?: string; reservationsUrl?: string;
+  instagram?: string; facebook?: string; tiktok?: string; otherLinks?: ExtraLink[];
+  googleMapsUrl?: string; googleReviewUrl?: string;
+  delivery?: DeliveryChannel[];
+  openDaysPerMonth?: number | null;
+  avgTicket?: number | null;
+  ticketByChannel?: Record<string, number | null>;
+}
+
+// Dados privados (só o dono vê): ficam numa tabela separada no banco.
+export interface RestaurantPrivate {
+  ownerName?: string; managerName?: string; privatePhone?: string; privateEmail?: string; consultingNotes?: string;
+}
+
+// ---------- Metas de vendas / ponto de equilíbrio ----------
+
+export interface ChannelMix { share: number | null; feePct: number | null }
+
+export interface GoalsSettings {
+  basis?: 'budget' | 'month';
+  basisPeriod?: string;
+  includeOwnerPay?: boolean;
+  ownerPay?: number | null;
+  cogsMode?: 'consumed' | 'purchases';
+  referenceRevenue?: number | null;
+  useMix?: boolean;
+  mix?: Record<string, ChannelMix>;
+  scenarios?: number[];
+  customPct?: number | null;
+  customProfit?: number | null;
+  dashboardScenario?: number;
 }

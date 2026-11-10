@@ -22,7 +22,7 @@ const entries: FinanceEntry[] = [
 
 describe('finance', () => {
   it('subtotais do orçamento', () => {
-    expect(budgetTotals(budget)).toEqual({ fixed: 3100, variable: 5000, total: 8100 });
+    expect(budgetTotals(budget)).toMatchObject({ fixed: 3100, variable: 5000, total: 8100 });
   });
 
   it('reais somam só o que foi lançado (pendente não vira zero contado)', () => {

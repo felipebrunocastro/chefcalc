@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layout, allowedViews } from './components/Layout';
 import { SheetView } from './components/dish/SheetView';
+import { ProfilePage } from './components/profile/ProfilePage';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { IngredientsPage } from './components/ingredients/IngredientsPage';
 import { ShoppingListPage } from './components/shopping/ShoppingListPage';
@@ -72,6 +73,7 @@ function Workspace() {
           {view === 'dish' && <DishPage key={editingDishId ?? 'new'} dishId={editingDishId} onNavigate={navigate} />}
           {view === 'simulator' && <SimulatorPage />}
           {view === 'converter' && <ConverterPage />}
+          {view === 'profile' && !readOnly && <ProfilePage />}
           {view === 'finance' && (!readOnly || current.role === 'finance') && <FinancePage />}
           {view === 'export' && <ExportPage initialSelection={printIds} />}
           </>}
