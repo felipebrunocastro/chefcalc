@@ -1,31 +1,34 @@
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Package, ShoppingCart, ChefHat, Calculator, Scale, FileDown, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Calculator, Scale, Printer, Menu, X, LogOut, Wallet, ArrowLeftRight, ChefHat } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
-import { CurrencySwitcher } from './ui/CurrencySwitcher';
 import { useAuth } from '../hooks/useAuth';
+import { useRestaurant } from '../hooks/useRestaurant';
+import { RestaurantLogo } from './restaurants/RestaurantLogo';
 import type { AppView } from '../types';
 
 interface Props {
   current: AppView;
   onNavigate: (view: AppView) => void;
-  onCurrencyChange?: () => void;
   children: React.ReactNode;
 }
 
 const NAV_ITEMS = [
-  { view: 'dashboard' as AppView, icon: LayoutDashboard, key: 'nav.dashboard' },
+  { view: 'home' as AppView, icon: LayoutDashboard, key: 'nav.home' },
+  { view: 'dashboard' as AppView, icon: ClipboardList, key: 'nav.sheets' },
   { view: 'ingredients' as AppView, icon: Package, key: 'nav.ingredients' },
+  { view: 'finance' as AppView, icon: Wallet, key: 'nav.finance' },
   { view: 'shopping' as AppView, icon: ShoppingCart, key: 'shopping.navShort' },
-  { view: 'dish' as AppView, icon: ChefHat, key: 'nav.newDish' },
   { view: 'simulator' as AppView, icon: Calculator, key: 'nav.simulator' },
+  { view: 'export' as AppView, icon: Printer, key: 'nav.export' },
   { view: 'converter' as AppView, icon: Scale, key: 'converter.navShort' },
-  { view: 'export' as AppView, icon: FileDown, key: 'nav.export' },
 ];
+const MOBILE_BAR = NAV_ITEMS.slice(0, 4);
 
-export function Layout({ current, onNavigate, onCurrencyChange, children }: Props) {
+export function Layout({ current, onNavigate, children }: Props) {
   const { t } = useTranslation();
   const { signOut } = useAuth();
+  const { current: restaurant, select } = useRestaurant();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigate = (view: AppView) => {
@@ -33,91 +36,108 @@ export function Layout({ current, onNavigate, onCurrencyChange, children }: Prop
     setMobileMenuOpen(false);
   };
 
+  const isActive = (v: AppView) => current === v || (v === 'dashboard' && current === 'dish');
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 flex items-center h-14 gap-4">
-          <button
-            className="md:hidden p-1.5 text-gray-500 hover:text-gray-700 rounded-md"
-            onClick={() => setMobileMenuOpen(m => !m)}
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+      <header className="bg-navy-900 text-white sticky top-0 z-40 shadow-md">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 flex items-center h-14 gap-2 md:gap-3">
+          {restaurant && (
+            <button
+              className="lg:hidden p-2 text-blue-100 hover:bg-navy-800 rounded-lg"
+              onClick={() => setMobileMenuOpen(m => !m)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={t('nav.menu')}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          )}
+
+          <button onClick={() => select(null)} className={`${restaurant ? 'hidden sm:flex' : 'flex'} items-center gap-2 rounded-lg px-1 py-1 hover:bg-navy-800`} title={t('nav.restaurants')}>
+            <ChefHat size={22} className="text-blue-300" />
+            <span className="font-bold text-base hidden sm:inline">ChefCalc</span>
           </button>
 
-          <div className="flex items-center gap-2 mr-auto">
-            <ChefHat size={22} className="text-amber-500" />
-            <span className="font-bold text-gray-900 text-base">ChefCalc</span>
-          </div>
+          {restaurant && (
+            <div className="flex items-center gap-2 min-w-0 sm:pl-2 sm:ml-1 sm:border-l border-navy-700">
+              <RestaurantLogo restaurant={restaurant} size={30} className="!rounded-lg" />
+              <span className="font-semibold text-sm truncate min-w-[3.5rem] max-w-[10rem] sm:max-w-[16rem]" title={restaurant.name}>{restaurant.name}</span>
+              <button
+                onClick={() => select(null)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 bg-navy-800 hover:bg-navy-700 rounded-md px-2 py-1 shrink-0"
+              >
+                <ArrowLeftRight size={13} /> <span className="hidden sm:inline">{t('nav.switchClient')}</span>
+              </button>
+            </div>
+          )}
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1">
+            <LanguageSwitcher />
+            <button onClick={signOut} title={t('auth.signOut')} aria-label={t('auth.signOut')} className="p-2 text-blue-200 hover:text-white hover:bg-navy-800 rounded-lg">
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+
+        {restaurant && (
+          <nav className="hidden lg:block bg-navy-950/40 border-t border-navy-800" aria-label={t('nav.menu')}>
+            <div className="max-w-7xl mx-auto px-4 flex gap-1 py-1.5 overflow-x-auto">
+              {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
+                <button
+                  key={view}
+                  onClick={() => navigate(view)}
+                  aria-current={isActive(view) ? 'page' : undefined}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${
+                    isActive(view) ? 'bg-blue-600 text-white' : 'text-blue-100 hover:bg-navy-800 hover:text-white'
+                  }`}
+                >
+                  <Icon size={15} /> {t(key)}
+                </button>
+              ))}
+            </div>
+          </nav>
+        )}
+
+        {restaurant && mobileMenuOpen && (
+          <nav className="lg:hidden border-t border-navy-800 bg-navy-900 px-3 py-2" aria-label={t('nav.menu')}>
             {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
               <button
                 key={view}
                 onClick={() => navigate(view)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  current === view
-                    ? 'bg-amber-50 text-amber-600'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                aria-current={isActive(view) ? 'page' : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-0.5 ${
+                  isActive(view) ? 'bg-blue-600 text-white' : 'text-blue-100 hover:bg-navy-800'
                 }`}
               >
-                <Icon size={14} />
-                {t(key)}
+                <Icon size={16} /> {t(key)}
               </button>
             ))}
           </nav>
-
-          <CurrencySwitcher onChange={onCurrencyChange} />
-          <LanguageSwitcher />
-          <button
-            onClick={signOut}
-            title={t('auth.signOut')}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-2">
-            {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
-              <button
-                key={view}
-                onClick={() => navigate(view)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
-                  current === view
-                    ? 'bg-amber-50 text-amber-600'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Icon size={16} />
-                {t(key)}
-              </button>
-            ))}
-          </div>
         )}
       </header>
 
-      {/* Bottom mobile nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40 flex">
-        {NAV_ITEMS.map(({ view, icon: Icon, key }) => (
-          <button
-            key={view}
-            onClick={() => navigate(view)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
-              current === view ? 'text-amber-500' : 'text-gray-400'
-            }`}
-          >
-            <Icon size={18} />
-            <span className="truncate max-w-[60px]">{t(key)}</span>
+      {restaurant && (
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-navy-900 z-40 flex pb-[env(safe-area-inset-bottom)]" aria-label={t('nav.menu')}>
+          {MOBILE_BAR.map(({ view, icon: Icon, key }) => (
+            <button
+              key={view}
+              onClick={() => navigate(view)}
+              aria-current={isActive(view) ? 'page' : undefined}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+                isActive(view) ? 'text-white bg-navy-800' : 'text-blue-200'
+              }`}
+            >
+              <Icon size={19} />
+              <span className="truncate max-w-[72px]">{t(key)}</span>
+            </button>
+          ))}
+          <button onClick={() => setMobileMenuOpen(true)} className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-blue-200">
+            <Menu size={19} /><span>{t('nav.menu')}</span>
           </button>
-        ))}
-      </nav>
+        </nav>
+      )}
 
-      {/* Main content */}
-      <main className="flex-1 pb-20 md:pb-0">
+      <main className={`flex-1 ${restaurant ? 'pb-20 lg:pb-0' : ''}`}>
         {children}
       </main>
     </div>
