@@ -1,25 +1,38 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Plus, Edit2, Trash2, ChefHat, Copy } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Copy, AlertTriangle, Printer } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
 import { calcDish, formatCurrency, formatPct } from '../../utils/calculations';
 import { MarginBadge } from '../ui/MarginBadge';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Mascot } from '../ui/Mascot';
 import type { AppView, Dish } from '../../types';
 
 interface Props {
   onNavigate: (view: AppView, dishId?: string) => void;
+  onPrint: (dishIds: string[]) => void;
 }
 
-export function Dashboard({ onNavigate }: Props) {
+function IncompleteBadge() {
+  const { t } = useTranslation();
+  return (
+    <span title={t('dashboard.incompleteHint')} className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-[11px] font-semibold">
+      <AlertTriangle size={11} aria-hidden="true" /> {t('dashboard.incomplete')}
+    </span>
+  );
+}
+
+export function Dashboard({ onNavigate, onPrint }: Props) {
   const { t, i18n } = useTranslation();
   const { dishes, loading, save, remove } = useDishes();
   const { ingredients } = useIngredients();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Dish | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const lang = i18n.language as 'pt' | 'en' | 'es';
 
   const duplicate = async (dish: Dish) => {
@@ -67,14 +80,21 @@ export function Dashboard({ onNavigate }: Props) {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+        <h1 className="text-2xl font-bold text-navy-900">{t('dashboard.title')}</h1>
+        <div className="flex flex-wrap gap-2">
+        {selected.size > 0 && (
+          <button onClick={() => onPrint([...selected])} className="btn-secondary">
+            <Printer size={16} /> {t('dashboard.printSelected', { n: selected.size })}
+          </button>
+        )}
         <button
           onClick={() => onNavigate('dish')}
-          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
         >
           <Plus size={16} />
           {t('nav.newDish')}
         </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -84,14 +104,14 @@ export function Dashboard({ onNavigate }: Props) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t('dashboard.search')}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
         </div>
         {categories.length > 0 && (
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white min-w-[140px]"
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[140px]"
           >
             <option value="">{t('dashboard.allCategories')}</option>
             {categories.map(c => (
@@ -103,11 +123,11 @@ export function Dashboard({ onNavigate }: Props) {
 
       {calculated.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <ChefHat size={48} className="text-gray-300 mb-4" />
+          <Mascot size={110} className="mb-4" decorative />
           <p className="text-gray-400 mb-4">{t('dashboard.noDishes')}</p>
           <button
             onClick={() => onNavigate('dish')}
-            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm"
           >
             <Plus size={16} />
             {t('dashboard.addFirst')}
@@ -116,10 +136,11 @@ export function Dashboard({ onNavigate }: Props) {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="hidden md:block card overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr className="bg-blue-50 border-b border-blue-100">
+                  <th className="w-10 px-3"><span className="sr-only">{t('dashboard.selectForPrint')}</span></th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">{t('dish.name')}</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">{t('dish.category')}</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">{t('dashboard.costPerPortion')}</th>
@@ -130,16 +151,19 @@ export function Dashboard({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {calculated.map(({ dish, custoTotalPorcao, precoVendaSugerido, cmvPct, margemStatus }) => (
-                  <tr key={dish.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                {calculated.map(({ dish, custoTotalPorcao, precoVendaSugerido, cmvPct, margemStatus, custoIncompleto, foodCostDisponivel }) => (
+                  <tr key={dish.id} className={`border-b border-gray-100 hover:bg-blue-50/60 transition-colors ${selected.has(dish.id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-3 py-3">
+                      <input type="checkbox" checked={selected.has(dish.id)} onChange={() => toggle(dish.id)} className="accent-blue-600 w-4 h-4" aria-label={`${t('dashboard.selectForPrint')}: ${dish.nome[lang] || dish.nome.pt}`} />
+                    </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{dish.nome[lang] || dish.nome.pt}</div>
+                      <div className="font-medium text-gray-900 flex flex-wrap items-center gap-2">{dish.nome[lang] || dish.nome.pt}{custoIncompleto && <IncompleteBadge />}</div>
                       <div className="text-xs text-gray-400">{dish.rendimentoPorcoes} {t('dashboard.portions', { n: dish.rendimentoPorcoes, count: dish.rendimentoPorcoes })}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{dish.categoria || '—'}</td>
                     <td className="px-4 py-3 text-right font-mono text-gray-700">{formatCurrency(custoTotalPorcao)}</td>
                     <td className="px-4 py-3 text-right font-mono font-semibold text-gray-900">{formatCurrency(precoVendaSugerido)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-600">{formatPct(cmvPct)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-gray-600">{foodCostDisponivel ? formatPct(cmvPct) : '—'}</td>
                     <td className="px-4 py-3 text-center">
                       <MarginBadge status={margemStatus} showLabel={false} />
                     </td>
@@ -147,7 +171,7 @@ export function Dashboard({ onNavigate }: Props) {
                       <div className="flex items-center gap-2 justify-end">
                         <button
                           onClick={() => onNavigate('dish', dish.id)}
-                          className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                           title={t('dashboard.editDish')}
                         >
                           <Edit2 size={14} />
@@ -176,12 +200,14 @@ export function Dashboard({ onNavigate }: Props) {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {calculated.map(({ dish, custoTotalPorcao, precoVendaSugerido, cmvPct, margemStatus }) => (
-              <div key={dish.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
+            {calculated.map(({ dish, custoTotalPorcao, precoVendaSugerido, cmvPct, margemStatus, custoIncompleto, foodCostDisponivel }) => (
+              <div key={dish.id} className={`card p-4 ${selected.has(dish.id) ? 'ring-2 ring-blue-500' : ''}`}>
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <input type="checkbox" checked={selected.has(dish.id)} onChange={() => toggle(dish.id)} className="accent-blue-600 w-5 h-5 mt-0.5" aria-label={`${t('dashboard.selectForPrint')}: ${dish.nome[lang] || dish.nome.pt}`} />
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900">{dish.nome[lang] || dish.nome.pt}</h3>
                     {dish.categoria && <span className="text-xs text-gray-400">{dish.categoria}</span>}
+                    {custoIncompleto && <div className="mt-1"><IncompleteBadge /></div>}
                   </div>
                   <MarginBadge status={margemStatus} showLabel={false} />
                 </div>
@@ -196,13 +222,13 @@ export function Dashboard({ onNavigate }: Props) {
                   </div>
                   <div>
                     <div className="text-xs text-gray-400 mb-0.5">{t('dashboard.cmv')}</div>
-                    <div className="font-mono text-sm">{formatPct(cmvPct)}</div>
+                    <div className="font-mono text-sm">{foodCostDisponivel ? formatPct(cmvPct) : '—'}</div>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-gray-100">
                   <button
                     onClick={() => onNavigate('dish', dish.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100"
                   >
                     <Edit2 size={13} /> {t('dashboard.editDish')}
                   </button>

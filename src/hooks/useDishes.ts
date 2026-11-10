@@ -1,34 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDishes, saveDish, deleteDish } from '../data/repo';
-import { useAuth } from './useAuth';
+import { useRestaurant } from './useRestaurant';
 import type { Dish } from '../types';
 
+// Escopo: sempre o restaurante aberto. Sem restaurante, lista vazia.
 export function useDishes() {
-  const { user } = useAuth();
+  const { current } = useRestaurant();
+  const rid = current?.id;
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user) { setDishes([]); setLoading(false); return; }
+    if (!rid) { setDishes([]); setLoading(false); return; }
     try {
-      setDishes(await getDishes());
+      setDishes(await getDishes(rid));
     } catch {
       setDishes([]);
     }
     setLoading(false);
-  }, [user]);
+  }, [rid]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setLoading(true); load(); }, [load]);
 
-  const save = useCallback(async (dish: Dish) => {
-    await saveDish(dish);
+  const save = useCallback(async (item: Dish) => {
+    if (!rid) throw new Error('no restaurant');
+    await saveDish(rid, item);
     await load();
-  }, [load]);
+  }, [rid, load]);
 
   const remove = useCallback(async (id: string) => {
-    await deleteDish(id);
+    if (!rid) return;
+    await deleteDish(rid, id);
     await load();
-  }, [load]);
+  }, [rid, load]);
 
   return { dishes, loading, save, remove, reload: load };
 }

@@ -99,7 +99,7 @@ export function IngredientsPage() {
         <h1 className="text-2xl font-bold text-gray-900">{t('ingredients.title')}</h1>
         <button
           onClick={openNew}
-          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
         >
           <Plus size={16} />
           {t('ingredients.add')}
@@ -108,8 +108,8 @@ export function IngredientsPage() {
 
       {/* Form */}
       {formOpen && (
-        <div className="bg-white rounded-xl border border-amber-200 shadow-sm p-5 mb-6">
-          <h2 className="text-sm font-semibold text-amber-700 mb-4 uppercase tracking-wide">
+        <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-5 mb-6">
+          <h2 className="text-sm font-semibold text-blue-800 mb-4 uppercase tracking-wide">
             {editing ? t('ingredients.edit') : t('ingredients.add')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -119,7 +119,7 @@ export function IngredientsPage() {
                 autoFocus
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('ingredients.namePlaceholder')}
               />
             </div>
@@ -128,7 +128,7 @@ export function IngredientsPage() {
               <input
                 value={form.fornecedor}
                 onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -138,7 +138,7 @@ export function IngredientsPage() {
               <select
                 value={form.unidadeCompra}
                 onChange={e => setForm(f => ({ ...f, unidadeCompra: e.target.value as UnitPurchase }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {UNITS.map(u => <option key={u} value={u}>{t(`units.${u}`)}</option>)}
               </select>
@@ -151,7 +151,7 @@ export function IngredientsPage() {
                 type="number" min="0" step="0.01"
                 value={form.precoCompra}
                 onChange={e => setForm(f => ({ ...f, precoCompra: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -160,7 +160,7 @@ export function IngredientsPage() {
                 type="number" min="1" step="0.01"
                 value={form.fatorCorrecao}
                 onChange={e => setForm(f => ({ ...f, fatorCorrecao: parseFloat(e.target.value) || 1 }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -172,26 +172,26 @@ export function IngredientsPage() {
               unidadesPorPacote: form.unidadesPorPacote, pacoteConteudoUnidade: form.pacoteConteudoUnidade,
             });
             return (
-              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <label className="block text-xs font-medium text-amber-700 mb-1">{t('ingredients.packageContains')}</label>
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <label className="block text-xs font-medium text-blue-800 mb-1">{t('ingredients.packageContains')}</label>
                 <div className="flex gap-2 max-w-sm">
                   <input
                     type="number" min="0" step="0.01"
                     value={form.unidadesPorPacote}
                     onChange={e => setForm(f => ({ ...f, unidadesPorPacote: parseFloat(e.target.value) || 0 }))}
-                    className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    className="flex-1 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     placeholder="ex: 10"
                   />
                   <select
                     value={form.pacoteConteudoUnidade}
                     onChange={e => setForm(f => ({ ...f, pacoteConteudoUnidade: e.target.value as PackageContentUnit }))}
-                    className="px-3 py-2 border border-amber-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                    className="px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     {PACKAGE_CONTENT_UNITS.map(u => <option key={u} value={u}>{t(`units.${u}`)}</option>)}
                   </select>
                 </div>
                 {form.precoCompra > 0 && form.unidadesPorPacote > 0 && (
-                  <p className="text-xs text-amber-700 mt-2">
+                  <p className="text-xs text-blue-800 mt-2">
                     {t('ingredients.costPerUnit')}: <strong>{formatCurrency(preview.value)}{preview.label}</strong>
                   </p>
                 )}
@@ -201,7 +201,7 @@ export function IngredientsPage() {
 
           <p className="text-xs text-gray-400 mb-4">{t('ingredients.correctionHelp')}</p>
           <div className="flex gap-2">
-            <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">{t('ingredients.save')}</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">{t('ingredients.save')}</button>
             <button onClick={closeForm} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('ingredients.cancel')}</button>
           </div>
         </div>
@@ -214,7 +214,7 @@ export function IngredientsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('ingredients.search')}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
       </div>
 
@@ -250,7 +250,7 @@ export function IngredientsPage() {
                     <td className="px-4 py-3 text-center text-gray-600">{ing.fatorCorrecao.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 justify-end">
-                        <button onClick={() => openEdit(ing)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md"><Edit2 size={13} /></button>
+                        <button onClick={() => openEdit(ing)} className="p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-md"><Edit2 size={13} /></button>
                         <button onClick={() => setDeleteTarget(ing)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md"><Trash2 size={13} /></button>
                       </div>
                     </td>
@@ -270,7 +270,7 @@ export function IngredientsPage() {
                     {ing.fornecedor && <p className="text-xs text-gray-400">{ing.fornecedor}</p>}
                   </div>
                   <div className="flex gap-1.5">
-                    <button onClick={() => openEdit(ing)} className="p-1.5 text-amber-500 bg-amber-50 rounded-md"><Edit2 size={13} /></button>
+                    <button onClick={() => openEdit(ing)} className="p-1.5 text-blue-600 bg-blue-50 rounded-md"><Edit2 size={13} /></button>
                     <button onClick={() => setDeleteTarget(ing)} className="p-1.5 text-red-500 bg-red-50 rounded-md"><Trash2 size={13} /></button>
                   </div>
                 </div>

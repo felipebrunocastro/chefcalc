@@ -11,16 +11,19 @@ export const CURRENCIES: { code: Currency; label: string; locale: string }[] = [
 
 const localeOf = (c: Currency) => CURRENCIES.find(x => x.code === c)?.locale ?? 'pt-BR';
 
-// Valor atual mantido em nível de módulo para que formatCurrency continue puro.
-let current: Currency = (localStorage.getItem('currency') as Currency) || 'BRL';
+// Moeda de formatação atual. No modo consultor ela é definida pelo restaurante
+// aberto (RestaurantProvider). Só muda a exibição: nenhum valor é convertido.
+const storage = typeof localStorage !== 'undefined' ? localStorage : null;
+let current: Currency = (storage?.getItem('currency') as Currency) || 'BRL';
 
 export function getCurrency(): Currency {
   return current;
 }
 
 export function setCurrencyValue(c: Currency): void {
+  if (current === c) return;
   current = c;
-  localStorage.setItem('currency', c);
+  storage?.setItem('currency', c);
 }
 
 export function formatCurrency(value: number): string {

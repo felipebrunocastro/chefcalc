@@ -39,7 +39,7 @@ export function SimulatorPage() {
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <Calculator size={24} className="text-amber-500" />
+        <Calculator size={24} className="text-blue-600" />
         <h1 className="text-2xl font-bold text-gray-900">{t('simulator.title')}</h1>
       </div>
 
@@ -48,7 +48,7 @@ export function SimulatorPage() {
         <select
           value={selectedDishId}
           onChange={e => { setSelectedDishId(e.target.value); setChargePrice(''); setWantMargin(''); }}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">{t('simulator.selectPlaceholder')}</option>
           {dishes.map(d => (
@@ -66,9 +66,9 @@ export function SimulatorPage() {
 
       {calculated && (
         <>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-            <div className="text-xs text-amber-600 font-medium mb-1">{t('simulator.costPortion')}</div>
-            <div className="text-2xl font-mono font-bold text-amber-700">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div className="text-xs text-blue-700 font-medium mb-1">{t('simulator.costPortion')}</div>
+            <div className="text-2xl font-mono font-bold text-blue-800">
               {formatCurrency(calculated.custoTotalPorcao)}
             </div>
           </div>
@@ -85,7 +85,7 @@ export function SimulatorPage() {
                   step="0.01"
                   value={chargePrice}
                   onChange={e => setChargePrice(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-right font-mono"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right font-mono"
                   placeholder="0.00"
                 />
               </div>
@@ -116,7 +116,7 @@ export function SimulatorPage() {
                   step="1"
                   value={wantMargin}
                   onChange={e => setWantMargin(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 text-right font-mono"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right font-mono"
                   placeholder="30"
                 />
                 <span className="text-sm text-gray-500">%</span>
@@ -126,7 +126,7 @@ export function SimulatorPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">{t('simulator.resultPrice')}</span>
                   </div>
-                  <div className="text-2xl font-mono font-bold text-amber-700 text-right">
+                  <div className="text-2xl font-mono font-bold text-blue-800 text-right">
                     {formatCurrency(priceFromMargin)}
                   </div>
                   <div className="text-xs text-gray-400 text-right">

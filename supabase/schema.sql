@@ -46,3 +46,6 @@ create policy "own dishes" on public.dishes
 -- Assinatura: usuário pode LER a sua; escrita só pelo service role (webhook)
 create policy "read own subscription" on public.subscriptions
   for select using (auth.uid() = user_id);
+
+-- Depois deste arquivo, rode as migrações em supabase/migrations/ em ordem
+-- (002_restaurants.sql: modo consultor com vários restaurantes).

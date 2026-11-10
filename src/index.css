@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Tema ChefCalc — azul. Navy na navegação, azul vivo nas ações, fundos azul-claro/branco. */
+@theme {
+  --color-navy-950: #071636;
+  --color-navy-900: #0b1f4b;
+  --color-navy-800: #12306b;
+  --color-navy-700: #1b408a;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -8,14 +17,54 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #eef5ff;
+    color: #0f172a;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
 
   #root {
     width: 100%;
     min-height: 100svh;
+  }
+
+  /* Foco sempre visível para navegação por teclado */
+  :focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button, a, select, input, textarea { transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s, transform .15s; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-blue-50 hover:border-blue-200 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 p-1.5 rounded-md text-slate-400 hover:text-blue-700 hover:bg-blue-50;
+  }
+  .card {
+    @apply bg-white rounded-2xl border border-blue-100 shadow-sm;
+  }
+  .field {
+    @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-500 mb-1;
   }
 }
 
@@ -25,13 +74,27 @@
     height: 6px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: #eef5ff;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #bfd4f5;
     border-radius: 9999px;
   }
   .input-cell {
-    @apply w-full bg-transparent border-0 outline-0 text-sm px-2 py-1 focus:bg-white focus:ring-1 focus:ring-amber-400 rounded;
+    @apply w-full bg-transparent border-0 outline-0 text-sm px-2 py-1 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded;
   }
+}
+
+/* ---------- Impressão: US Letter, fundo claro, uma ficha por página ---------- */
+.print-root { display: none; }
+@page { size: letter; margin: 0.5in; }
+@media print {
+  html, body { background: #fff !important; }
+  body > *:not(.print-root) { display: none !important; }
+  .print-root { display: block !important; }
+  .print-sheet { break-after: page; }
+  .print-sheet:last-child { break-after: auto; }
+  .print-sheet tr, .print-sheet li, .avoid-break { break-inside: avoid; }
+  .print-sheet h1, .print-sheet h2 { break-after: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

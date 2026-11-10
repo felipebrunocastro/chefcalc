@@ -7,7 +7,7 @@ const LANGS: { code: Lang; label: string; flag: string }[] = [
   { code: 'es', label: 'ES', flag: '🇪🇸' },
 ];
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   const { i18n } = useTranslation();
   const current = i18n.language as Lang;
 
@@ -17,17 +17,18 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       {LANGS.map(l => (
         <button
           key={l.code}
           onClick={() => changeLang(l.code)}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors
+          className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md text-xs font-medium transition-colors
             ${current === l.code
-              ? 'bg-amber-500 text-white'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
+              ? 'bg-blue-600 text-white'
+              : tone === 'dark' ? 'text-blue-100 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-navy-900'}`}
+          aria-pressed={current === l.code}
         >
-          <span>{l.flag}</span>
+          <span aria-hidden="true" className="hidden sm:inline">{l.flag}</span>
           <span>{l.label}</span>
         </button>
       ))}

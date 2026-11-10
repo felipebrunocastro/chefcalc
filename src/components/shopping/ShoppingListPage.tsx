@@ -63,7 +63,7 @@ export function ShoppingListPage() {
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-2">
-        <ShoppingCart size={24} className="text-amber-500" />
+        <ShoppingCart size={24} className="text-blue-600" />
         <h1 className="text-2xl font-bold text-gray-900">{t('shopping.title')}</h1>
       </div>
       <p className="text-sm text-gray-500 mb-6">{t('shopping.subtitle')}</p>
@@ -74,7 +74,7 @@ export function ShoppingListPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('ingredients.search')}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
       </div>
 
@@ -105,7 +105,7 @@ export function ShoppingListPage() {
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         {usageCount[ing.id]
-                          ? <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{usageCount[ing.id]}</span>
+                          ? <span className="text-xs bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full">{usageCount[ing.id]}</span>
                           : <span className="text-xs text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-2.5">
@@ -116,7 +116,7 @@ export function ShoppingListPage() {
                             onChange={e => setEdits(p => ({ ...p, [ing.id]: e.target.value }))}
                             onBlur={() => commitPrice(ing)}
                             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                            className="w-24 px-2 py-1 border border-gray-200 rounded-md text-sm text-right font-mono focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            className="w-24 px-2 py-1 border border-gray-200 rounded-md text-sm text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                           {savedId === ing.id && <Check size={14} className="text-emerald-500" />}
                         </div>
@@ -128,7 +128,7 @@ export function ShoppingListPage() {
                           value={qty[ing.id] || ''}
                           onChange={e => setQty(p => ({ ...p, [ing.id]: e.target.value }))}
                           placeholder="0"
-                          className="w-20 px-2 py-1 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400"
+                          className="w-20 px-2 py-1 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </td>
                     </tr>
@@ -162,7 +162,7 @@ export function ShoppingListPage() {
                         value={priceOf(ing)}
                         onChange={e => setEdits(p => ({ ...p, [ing.id]: e.target.value }))}
                         onBlur={() => commitPrice(ing)}
-                        className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right font-mono focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                     <div className="w-24">
@@ -172,7 +172,7 @@ export function ShoppingListPage() {
                         value={qty[ing.id] || ''}
                         onChange={e => setQty(p => ({ ...p, [ing.id]: e.target.value }))}
                         placeholder="0"
-                        className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -182,9 +182,9 @@ export function ShoppingListPage() {
           </div>
 
           {estimatedTotal > 0 && (
-            <div className="mt-4 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <span className="text-sm font-medium text-amber-700">{t('shopping.estimatedTotal')}</span>
-              <span className="font-mono font-bold text-amber-700 text-lg">{formatCurrency(estimatedTotal)}</span>
+            <div className="mt-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+              <span className="text-sm font-medium text-blue-800">{t('shopping.estimatedTotal')}</span>
+              <span className="font-mono font-bold text-blue-800 text-lg">{formatCurrency(estimatedTotal)}</span>
             </div>
           )}
 

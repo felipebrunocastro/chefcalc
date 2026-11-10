@@ -26,7 +26,7 @@ export function ConverterFab() {
       <button
         onClick={() => setOpen(true)}
         title={t('converter.quickTool')}
-        className="fixed z-40 bottom-20 right-4 md:bottom-6 md:right-6 w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg flex items-center justify-center transition-colors"
+        className="fixed z-40 bottom-20 right-4 md:bottom-6 md:right-6 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-colors"
       >
         <Scale size={20} />
       </button>
@@ -39,7 +39,7 @@ export function ConverterFab() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Scale size={18} className="text-amber-500" />
+                <Scale size={18} className="text-blue-600" />
                 <h2 className="font-bold text-gray-900">{t('converter.quickTool')}</h2>
               </div>
               <button onClick={() => setOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-md">

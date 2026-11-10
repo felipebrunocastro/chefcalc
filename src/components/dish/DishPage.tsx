@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'l
 import { v4 as uuidv4 } from 'uuid';
 import { useDishes } from '../../hooks/useDishes';
 import { useIngredients } from '../../hooks/useIngredients';
+import { useRestaurant } from '../../hooks/useRestaurant';
 import { calcDish, calcItemCost, laborCost, unitCostOf, usageDimension, formatCurrency, formatPct } from '../../utils/calculations';
 import { MarginBadge } from '../ui/MarginBadge';
 import type { AppView, Dish, RecipeItem, PrepStep, PricingModel, Lang } from '../../types';
@@ -50,7 +51,12 @@ export function DishPage({ dishId, onNavigate }: Props) {
   const { t, i18n } = useTranslation();
   const { dishes, save } = useDishes();
   const { ingredients } = useIngredients();
+  const { setDirty } = useRestaurant();
   const [dish, setDish] = useState<Dish>(emptyDish);
+  const [saveError, setSaveError] = useState('');
+
+  // Limpa o aviso de alterações não salvas ao sair da tela.
+  useEffect(() => () => setDirty(false), [setDirty]);
   const [activeTab, setActiveTab] = useState<'operational' | 'managerial'>('operational');
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const lang = i18n.language as Lang;
@@ -64,13 +70,20 @@ export function DishPage({ dishId, onNavigate }: Props) {
 
   const update = useCallback(<K extends keyof Dish>(key: K, value: Dish[K]) => {
     setDish(d => ({ ...d, [key]: value, updatedAt: Date.now() }));
-  }, []);
+    setDirty(true);
+  }, [setDirty]);
 
   const calculated = useMemo(() => calcDish(dish, ingredients), [dish, ingredients]);
   const ingMap = useMemo(() => new Map(ingredients.map(i => [i.id, i])), [ingredients]);
 
   const handleSave = async () => {
-    await save({ ...dish, updatedAt: Date.now() });
+    try {
+      await save({ ...dish, updatedAt: Date.now() });
+    } catch (e) {
+      setSaveError((e as Error).message);
+      return;
+    }
+    setDirty(false);
     onNavigate('dashboard');
   };
 
@@ -139,7 +152,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
           <input
             value={dish.nome.pt}
             onChange={e => update('nome', { pt: e.target.value, en: e.target.value, es: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={t('dish.namePlaceholder')}
           />
         </div>
@@ -149,7 +162,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
             <input
               value={dish.categoria}
               onChange={e => update('categoria', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="ex: Entradas"
             />
           </div>
@@ -159,7 +172,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
               type="number" min="1" step="1"
               value={dish.rendimentoPorcoes}
               onChange={e => update('rendimentoPorcoes', parseInt(e.target.value) || 1)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -169,7 +182,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
               value={dish.margemLucroPct}
               onChange={e => update('margemLucroPct', parseFloat(e.target.value) || 0)}
               disabled={!!(dish.precoVendaManual && dish.precoVendaManual > 0)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-100 disabled:text-gray-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
             />
           </div>
         </div>
@@ -179,7 +192,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
             <select
               value={dish.modeloPrecificacao}
               onChange={e => update('modeloPrecificacao', e.target.value as PricingModel)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="foodcost">{t('dish.foodcost')}</option>
               <option value="markup">{t('dish.markup')}</option>
@@ -191,7 +204,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
               type="number" min="0" step="0.01"
               value={dish.precoVendaManual || ''}
               onChange={e => update('precoVendaManual', parseFloat(e.target.value) || undefined)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="0.00"
             />
           </div>
@@ -206,7 +219,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
-                ? 'border-amber-500 text-amber-600'
+                ? 'border-blue-600 text-blue-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -221,7 +234,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t('dish.recipe')}</h2>
           <button
             onClick={addItem}
-            className="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:text-blue-800 font-medium"
           >
             <Plus size={14} />
             {t('dish.addIngredient')}
@@ -259,7 +272,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                           <select
                             value={item.ingredienteId}
                             onChange={e => selectIngredient(idx, e.target.value)}
-                            className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="">{t('dish.selectIngredient')}</option>
                             {ingredients.map(i => (
@@ -272,7 +285,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                             type="number" min="0" step="0.001"
                             value={item.quantidadeUsada}
                             onChange={e => updateItem(idx, { quantidadeUsada: parseFloat(e.target.value) || 0 })}
-                            className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
                         <td className="py-2 px-2">
@@ -285,7 +298,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                               <select
                                 value={item.unidade}
                                 onChange={e => updateItem(idx, { unidade: e.target.value })}
-                                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                className="w-full px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                               >
                                 {opts.map(u => <option key={u} value={u}>{u}</option>)}
                               </select>
@@ -334,7 +347,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                       <select
                         value={item.ingredienteId}
                         onChange={e => selectIngredient(idx, e.target.value)}
-                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white mr-2"
+                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white mr-2"
                       >
                         <option value="">{t('dish.selectIngredient')}</option>
                         {ingredients.map(i => (
@@ -350,7 +363,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                         type="number" min="0" step="0.001"
                         value={item.quantidadeUsada}
                         onChange={e => updateItem(idx, { quantidadeUsada: parseFloat(e.target.value) || 0 })}
-                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                        className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Qtd"
                       />
                       {(() => {
@@ -362,14 +375,14 @@ export function DishPage({ dishId, onNavigate }: Props) {
                           <select
                             value={item.unidade}
                             onChange={e => updateItem(idx, { unidade: e.target.value })}
-                            className="px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            className="px-2 py-1.5 border border-gray-200 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             {opts.map(u => <option key={u} value={u}>{u}</option>)}
                           </select>
                         );
                       })()}
                       {activeTab === 'managerial' && ing && (
-                        <span className="px-2 py-1.5 text-sm font-mono text-amber-700 bg-amber-50 rounded-md">
+                        <span className="px-2 py-1.5 text-sm font-mono text-blue-800 bg-blue-50 rounded-md">
                           {formatCurrency(itemCost)}
                         </span>
                       )}
@@ -393,7 +406,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
           </div>
           <button
             onClick={addStep}
-            className="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-700 hover:text-blue-800 font-medium"
           >
             <Plus size={14} />
             {t('dish.addStep')}
@@ -407,7 +420,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                 onClick={() => setExpandedStep(expandedStep === idx ? null : idx)}
               >
                 <GripVertical size={14} className="text-gray-300 flex-shrink-0" />
-                <span className="text-xs font-bold text-amber-500 w-6">{step.ordem}</span>
+                <span className="text-xs font-bold text-blue-600 w-6">{step.ordem}</span>
                 <span className="flex-1 text-sm text-gray-700 truncate">
                   {step.descricao[lang] || step.descricao.pt || '...'}
                 </span>
@@ -427,7 +440,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                       rows={2}
                       value={step.descricao.pt}
                       onChange={e => updateStep(idx, { descricao: { pt: e.target.value, en: e.target.value, es: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none bg-white"
                     />
                   </div>
                   <div>
@@ -436,7 +449,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                       type="number" min="0"
                       value={step.tempoMinutos}
                       onChange={e => updateStep(idx, { tempoMinutos: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                     />
                   </div>
                   <div>
@@ -444,7 +457,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                     <input
                       value={step.temperatura || ''}
                       onChange={e => updateStep(idx, { temperatura: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                       placeholder="ex: 180°C"
                     />
                   </div>
@@ -453,7 +466,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                     <input
                       value={step.equipamento || ''}
                       onChange={e => updateStep(idx, { equipamento: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                       placeholder="ex: Forno combinado"
                     />
                   </div>
@@ -481,7 +494,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                 type="number" min="0" step="0.01"
                 value={dish.valorHoraMaoObra ?? ''}
                 onChange={e => update('valorHoraMaoObra', parseFloat(e.target.value) || undefined)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="ex: 25.00"
               />
             </div>
@@ -491,7 +504,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
                 type="number" min="0" step="1"
                 value={dish.tempoPreparoMin ?? ''}
                 onChange={e => update('tempoPreparoMin', parseFloat(e.target.value) || undefined)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="ex: 45"
               />
             </div>
@@ -508,7 +521,7 @@ export function DishPage({ dishId, onNavigate }: Props) {
               type="number" min="0" max="100" step="1"
               value={dish.despesasFixasPct || ''}
               onChange={e => update('despesasFixasPct', parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="ex: 15"
             />
             <p className="text-xs text-gray-400 mt-1">{t('dish.fixedExpensesHelp')}</p>
@@ -532,9 +545,9 @@ export function DishPage({ dishId, onNavigate }: Props) {
               <div className="text-xs text-gray-400 mb-1">{t('dish.totalCostPortion')}</div>
               <div className="font-mono font-semibold text-gray-900">{formatCurrency(calculated.custoTotalPorcao)}</div>
             </div>
-            <div className="bg-amber-50 rounded-lg p-3">
-              <div className="text-xs text-amber-600 mb-1">{t('dish.suggestedPrice')}</div>
-              <div className="font-mono font-bold text-amber-700 text-lg">{formatCurrency(calculated.precoVendaSugerido)}</div>
+            <div className="bg-blue-50 rounded-lg p-3">
+              <div className="text-xs text-blue-700 mb-1">{t('dish.suggestedPrice')}</div>
+              <div className="font-mono font-bold text-blue-800 text-lg">{formatCurrency(calculated.precoVendaSugerido)}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
               <div className="text-xs text-gray-400 mb-1">{t('dish.cmv')}</div>
@@ -557,11 +570,12 @@ export function DishPage({ dishId, onNavigate }: Props) {
       )}
 
       {/* Save */}
+      {saveError && <p className="text-sm text-red-600 mb-3" role="alert">{saveError}</p>}
       <div className="flex gap-3">
         <button
           onClick={handleSave}
           disabled={!dish.nome.pt}
-          className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors"
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors"
         >
           {t('dish.save')}
         </button>

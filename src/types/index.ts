@@ -65,6 +65,48 @@ export interface CalculatedDish {
   markupPct: number;   // margem sobre o custo: (preço - custo) / custo × 100
   lucroPorcao: number;
   margemStatus: 'green' | 'yellow' | 'red';
+  custoIncompleto: boolean;  // insumo ausente, sem preço ou quantidade zerada
+  foodCostDisponivel: boolean; // custo completo e preço > 0
 }
 
-export type AppView = 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export';
+export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance';
+
+// ---------- Modo consultor: restaurantes e financeiro ----------
+
+export type CostType = 'fixed' | 'variable';
+
+export interface BudgetItem {
+  id: string;
+  categoria: string;
+  descricao: string;
+  tipo: CostType;
+  valor: number;
+}
+
+export type DeliveryPlatform = 'doordash' | 'ubereats' | 'grubhub';
+
+export interface FinanceEntry {
+  id: string;
+  categoria: string;
+  descricao: string;
+  tipo: CostType;
+  valor: number | null;          // null = ainda não lançado (não soma)
+  plataforma?: DeliveryPlatform; // lançamentos de comissão/taxa de delivery
+}
+
+export interface FinanceMonth {
+  restaurantId: string;
+  period: string;                // 'YYYY-MM'
+  status: 'open' | 'closed';
+  estimateSnapshot: BudgetItem[] | null;
+  entries: FinanceEntry[];
+}
+
+export interface Restaurant {
+  id: string;
+  name: string;
+  currency: import('../lib/currency').Currency;
+  logo?: string | null;          // data URL
+  budget: BudgetItem[];
+  createdAt: string;
+}

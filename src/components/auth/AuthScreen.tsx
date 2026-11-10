@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChefHat } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
+import { Mascot } from '../ui/Mascot';
 
 export function AuthScreen() {
   const { t } = useTranslation();
@@ -27,12 +28,12 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="absolute top-4 right-4"><LanguageSwitcher /></div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="absolute top-4 right-4"><LanguageSwitcher tone="light" /></div>
 
-      <div className="flex items-center gap-2 mb-8">
-        <ChefHat size={30} className="text-amber-500" />
-        <span className="text-2xl font-bold text-gray-900">ChefCalc</span>
+      <div className="flex flex-col items-center gap-2 mb-6">
+        <Mascot size={96} />
+        <span className="flex items-center gap-2 text-2xl font-bold text-navy-900"><ChefHat size={26} className="text-blue-600" /> ChefCalc</span>
       </div>
 
       <form onSubmit={submit} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 w-full max-w-sm">
@@ -46,7 +47,7 @@ export function AuthScreen() {
             <input
               type="email" required value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -54,7 +55,7 @@ export function AuthScreen() {
             <input
               type="password" required minLength={6} value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -64,7 +65,7 @@ export function AuthScreen() {
 
         <button
           type="submit" disabled={busy}
-          className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-medium text-sm transition-colors"
+          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium text-sm transition-colors"
         >
           {busy ? '...' : mode === 'login' ? t('auth.login') : t('auth.signup')}
         </button>
@@ -72,7 +73,7 @@ export function AuthScreen() {
         <button
           type="button"
           onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setInfo(''); }}
-          className="w-full mt-3 text-sm text-amber-600 hover:text-amber-700"
+          className="w-full mt-3 text-sm text-blue-700 hover:text-blue-800"
         >
           {mode === 'login' ? t('auth.needAccount') : t('auth.haveAccount')}
         </button>

@@ -62,8 +62,12 @@ export function calcDish(dish: Dish, ingredients: Ingredient[]): CalculatedDish 
   const ingredMap = new Map(ingredients.map(i => [i.id, i]));
 
   let custoInsumos = 0;
+  // Custo incompleto: ficha sem itens, insumo inexistente/de outro restaurante,
+  // insumo sem preço ou quantidade não informada.
+  let custoIncompleto = dish.itens.length === 0;
   for (const item of dish.itens) {
     const ing = ingredMap.get(item.ingredienteId);
+    if (!ing || !(ing.precoCompra > 0) || !(item.quantidadeUsada > 0)) custoIncompleto = true;
     if (!ing) continue;
     custoInsumos += calcItemCost(ing, item.quantidadeUsada, item.unidade);
   }
@@ -111,7 +115,13 @@ export function calcDish(dish: Dish, ingredients: Ingredient[]): CalculatedDish 
     margemStatus = 'red';
   }
 
-  return { dish, custoInsumos, custoTotalPorcao, precoVendaSugerido, cmvPct, markupPct, lucroPorcao, margemStatus };
+  const foodCostDisponivel = !custoIncompleto && precoVendaSugerido > 0;
+
+  return {
+    dish, custoInsumos, custoTotalPorcao, precoVendaSugerido,
+    cmvPct: foodCostDisponivel ? cmvPct : 0,
+    markupPct, lucroPorcao, margemStatus, custoIncompleto, foodCostDisponivel,
+  };
 }
 
 export function calcItemCost(

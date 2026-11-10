@@ -47,7 +47,7 @@ export function Paywall() {
       </div>
 
       <div className="flex items-center gap-2 mb-6">
-        <ChefHat size={30} className="text-amber-500" />
+        <ChefHat size={30} className="text-blue-600" />
         <span className="text-2xl font-bold text-gray-900">ChefCalc</span>
       </div>
 
@@ -73,7 +73,7 @@ export function Paywall() {
 
         <button
           onClick={subscribe} disabled={busy}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-semibold transition-colors"
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-semibold transition-colors"
         >
           {busy ? '...' : t('paywall.subscribe')}
         </button>

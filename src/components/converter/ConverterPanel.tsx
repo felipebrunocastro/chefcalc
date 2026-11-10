@@ -128,7 +128,7 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
             key={tb}
             onClick={() => changeTab(tb)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              tab === tb ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              tab === tb ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {t(`converter.categories.${tb}`)}
@@ -138,14 +138,14 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
 
       {/* Ingredient picker */}
       {tab === 'ingredient' && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3">
           <div className="relative mb-2">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" />
             <input
               value={ingSearch}
               onChange={e => setIngSearch(e.target.value)}
               placeholder={t('converter.searchIngredient')}
-              className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full pl-9 pr-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="max-h-36 overflow-y-auto scrollbar-thin flex flex-wrap gap-1.5">
@@ -154,13 +154,13 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
                 key={d.id}
                 onClick={() => setIngredientId(d.id)}
                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                  ingredientId === d.id ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-amber-200 hover:bg-amber-100'
+                  ingredientId === d.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-blue-200 hover:bg-blue-100'
                 }`}
               >
                 <Star
                   size={11}
                   onClick={e => { e.stopPropagation(); toggleFav(d.id); }}
-                  className={favorites.includes(d.id) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                  className={favorites.includes(d.id) ? 'fill-blue-500 text-blue-500' : 'text-gray-300'}
                 />
                 {d.nome[lang] || d.nome.pt}
               </button>
@@ -200,12 +200,12 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
               value={value}
               onChange={e => setValue(e.target.value)}
               autoFocus
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-lg font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 mb-2"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-lg font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
             />
             <select
               value={from}
               onChange={e => setFrom(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {unitOptions.map(u => <option key={u.id} value={u.id}>{unitLabel(u.id)}</option>)}
             </select>
@@ -215,7 +215,7 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
           <button
             onClick={swap}
             title={t('converter.swap')}
-            className="mx-auto md:mb-2 p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+            className="mx-auto md:mb-2 p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
           >
             <ArrowLeftRight size={18} />
           </button>
@@ -223,13 +223,13 @@ export function ConverterPanel({ compact = false }: { compact?: boolean }) {
           {/* To */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">{t('converter.to')}</label>
-            <div className="w-full px-3 py-2 border border-amber-200 bg-amber-50 rounded-lg text-lg font-mono font-bold text-amber-700 mb-2 truncate">
+            <div className="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-lg text-lg font-mono font-bold text-blue-800 mb-2 truncate">
               {resultText}
             </div>
             <select
               value={to}
               onChange={e => setTo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {unitOptions.map(u => <option key={u.id} value={u.id}>{unitLabel(u.id)}</option>)}
             </select>
