@@ -17,6 +17,8 @@ import { RestaurantsPanel } from './components/restaurants/RestaurantsPanel';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { Paywall } from './components/auth/Paywall';
 import { Mascot } from './components/ui/Mascot';
+export { AcceptInvite } from './components/auth/AcceptInvite';
+import { PosPage } from './components/pos/PosPage';
 import { useAuth } from './hooks/useAuth';
 import { RestaurantProvider, useRestaurant } from './hooks/useRestaurant';
 import { useSubscription } from './hooks/useSubscription';
@@ -33,7 +35,7 @@ function Loading() {
 }
 
 function Workspace() {
-  const { current, guard, loading, select } = useRestaurant();
+  const { current, guard, loading, select, revoked, reload } = useRestaurant();
 
   // "Abrir meu painel" (landing) e retorno do OAuth do Square.
   useEffect(() => {
@@ -49,7 +51,7 @@ function Workspace() {
   // Ao abrir/trocar de restaurante, começa pela visão geral (ou pelas fichas, se for acesso compartilhado).
   useEffect(() => {
     if (current && new URLSearchParams(window.location.search).get('integration')) { setView('finance'); return; }
-    setView(current && current.role !== 'owner' ? 'dashboard' : 'home');
+    setView(!current ? 'home' : current.role === 'operator' ? 'pos' : current.role !== 'owner' ? 'dashboard' : 'home');
     setEditingDishId(undefined); setPrintIds(undefined);
   }, [current?.id, current?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -69,7 +71,8 @@ function Workspace() {
         <RestaurantsPanel />
       ) : (
         <div key={current.id}>
-          {readOnly && view !== 'dashboard' && view !== 'sheet' && view !== 'finance' ? null : <>
+          {readOnly && view !== 'dashboard' && view !== 'sheet' && view !== 'finance' && view !== 'pos' ? null : <>
+          {view === 'pos' && (current.role === 'owner' || current.role === 'operator') && <PosPage />}
           {view === 'home' && <RestaurantHome onNavigate={navigate} />}
           {view === 'dashboard' && <Dashboard readOnly={readOnly} onNavigate={navigate} onPrint={ids => { setPrintIds(ids); navigate('export'); }} />}
           {view === 'sheet' && <SheetView dishId={editingDishId} onNavigate={navigate} />}
@@ -79,10 +82,11 @@ function Workspace() {
           {view === 'simulator' && <SimulatorPage />}
           {view === 'converter' && <ConverterPage />}
           {view === 'profile' && !readOnly && <ProfilePage />}
-          {view === 'finance' && (!readOnly || current.role === 'finance') && <FinancePage />}
+          {view === 'finance' && (!readOnly || current.role === 'finance' || current.role === 'operator') && <FinancePage readOnly={current.role === 'operator'} />}
           {view === 'export' && <ExportPage initialSelection={printIds} />}
           </>}
           {!readOnly && <ConverterFab />}
+          {revoked && <RevokedOverlay onBack={async () => { await reload(); select(null); }} />}
         </div>
       )}
     </Layout>
@@ -107,5 +111,18 @@ export function AppArea({ authMode }: { authMode?: 'login' | 'signup' }) {
     <RestaurantProvider>
       <Workspace />
     </RestaurantProvider>
+  );
+}
+
+function RevokedOverlay({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="fixed inset-0 z-[80] bg-navy-950/80 backdrop-blur flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="revoked-h">
+      <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-3 text-center">
+        <h2 id="revoked-h" className="text-xl font-bold text-navy-900">{t('revoked.title')}</h2>
+        <p className="text-slate-700">{t('revoked.text')}</p>
+        <button onClick={onBack} className="btn-primary w-full !py-3">{t('revoked.back')}</button>
+      </div>
+    </div>
   );
 }

@@ -44,13 +44,18 @@ export async function getRestaurants(): Promise<Restaurant[]> {
   if (error) throw error;
   // Papéis nos restaurantes compartilhados. Tolerante: antes da migração 003 a tabela não existe.
   const roles = new Map<string, MemberRole>();
+  const units = new Map<string, string | null>();
   if (email) {
-    const { data: m } = await supabase.from('restaurant_members').select('restaurant_id, role').eq('email', email);
-    for (const r of m ?? []) roles.set((r as { restaurant_id: string }).restaurant_id, (r as { role: MemberRole }).role);
+    const { data: m } = await supabase.from('restaurant_members').select('*').eq('email', email);
+    for (const r of (m ?? []) as { restaurant_id: string; role: MemberRole; status?: string; unit?: string | null }[]) {
+      if (r.status && r.status !== 'active') continue;   // convite pendente não dá acesso
+      roles.set(r.restaurant_id, r.role); units.set(r.restaurant_id, r.unit ?? null);
+    }
   }
   return (data ?? []).map(r => {
     const row = r as RestaurantRow;
-    return toRestaurant(row, row.user_id === uid ? 'owner' : roles.get(row.id) ?? 'viewer');
+    const role = row.user_id === uid ? 'owner' : roles.get(row.id) ?? 'viewer';
+    return { ...toRestaurant(row, role), memberUnit: role === 'owner' ? null : units.get(row.id) ?? null };
   });
 }
 

@@ -6,6 +6,7 @@ import { Mascot } from '../ui/Mascot';
 import { basisFromBudget, basisFromMonth, computeTargets, DEFAULT_SCENARIOS } from '../../utils/breakeven';
 import { profileCompletion } from '../../utils/profile';
 import { useImports, useChannelLabel } from '../integrations/IntegrationsPanel';
+import { useLiveMonths } from '../pos/usePos';
 import { summarizeMonth } from '../../lib/imports/aggregate';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDishes } from '../../hooks/useDishes';
@@ -21,7 +22,8 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
   const { t, i18n } = useTranslation();
   const { current: restaurant } = useRestaurant();
   const { dishes, loading } = useDishes();
-  const { months } = useFinanceMonths(restaurant?.id);
+  const { months: storedMonths } = useFinanceMonths(restaurant?.id);
+  const months = useLiveMonths(storedMonths);
   const locale = LOCALES[(i18n.language as keyof typeof LOCALES)] ?? 'pt-BR';
   const [sharing, setSharing] = useState(false);
   const { records } = useImports(restaurant?.id);
@@ -100,7 +102,7 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
           {restaurant.profile.shortDescription && <p className="text-sm text-slate-600 mt-1">{restaurant.profile.shortDescription}</p>}
         </div>
         {restaurant.role === 'owner' && (
-          <button onClick={() => setSharing(true)} className="btn-secondary self-start sm:self-center"><Share2 size={15} /> {t('share.button')}</button>
+          <button onClick={() => { sessionStorage.setItem('chefcalc:scrollTo', 'profile-team'); onNavigate('profile'); }} className="btn-secondary self-start sm:self-center"><Share2 size={15} /> {t('share.button')}</button>
         )}
       </div>
       </section>

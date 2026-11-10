@@ -6,11 +6,11 @@ import { Mascot } from '../ui/Mascot';
 import { Logo } from '../ui/Logo';
 import { navigate } from '../../lib/router';
 
-export function AuthScreen({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' }) {
+export function AuthScreen({ initialMode = 'login', initialEmail = '', embedded = false }: { initialMode?: 'login' | 'signup'; initialEmail?: string; embedded?: boolean }) {
   const { t } = useTranslation();
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -29,7 +29,7 @@ export function AuthScreen({ initialMode = 'login' }: { initialMode?: 'login' | 
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className={`${embedded ? "py-6" : "min-h-screen"} flex flex-col items-center justify-center p-4`}>
       <div className="absolute top-4 left-4"><a href="/" onClick={e => { e.preventDefault(); navigate('/'); }} className="text-sm font-medium text-blue-700 hover:underline">← ChefCalc</a></div>
       <div className="absolute top-4 right-4"><LanguageSwitcher tone="light" /></div>
 

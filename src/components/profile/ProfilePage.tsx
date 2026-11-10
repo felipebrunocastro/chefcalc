@@ -11,6 +11,7 @@ import { fileToLogoDataUrl } from '../../lib/logo';
 import { RestaurantLogo } from '../restaurants/RestaurantLogo';
 import { DEFAULT_DELIVERY, BASE_CHANNELS } from '../../utils/breakeven';
 import { profileCompletion } from '../../utils/profile';
+import { TeamSection } from './TeamSection';
 import type {
   DayHours, EstablishmentType, RestaurantPrivate, RestaurantProfile, ServiceMode, ServiceSegment, Weekday,
 } from '../../types';
@@ -74,6 +75,11 @@ export function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const target = sessionStorage.getItem('chefcalc:scrollTo');
+    if (target) { sessionStorage.removeItem('chefcalc:scrollTo'); setTimeout(() => document.getElementById(target)?.scrollIntoView({ block: 'start' }), 50); }
+  }, []);
 
   useEffect(() => {
     if (!restaurant) return;
@@ -424,6 +430,8 @@ export function ProfilePage() {
           </div>
         </div>
       </Section>
+
+      <TeamSection />
 
       <div className="sticky bottom-20 lg:bottom-4 z-30 flex items-center gap-3 justify-end">
         {error && <p className="text-sm text-red-600 bg-white rounded-lg px-3 py-1 shadow" role="alert">{error}</p>}

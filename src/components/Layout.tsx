@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Store, LayoutDashboard, Package, ShoppingCart, ClipboardList, Calculator, Scale, Printer, Menu, X, LogOut, Wallet, ArrowLeftRight, ChefHat } from 'lucide-react';
+import { Banknote, Store, LayoutDashboard, Package, ShoppingCart, ClipboardList, Calculator, Scale, Printer, Menu, X, LogOut, Wallet, ArrowLeftRight, ChefHat } from 'lucide-react';
 import { useState } from 'react';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
 import { useAuth } from '../hooks/useAuth';
@@ -16,6 +16,7 @@ interface Props {
 
 const NAV_ITEMS = [
   { view: 'home' as AppView, icon: LayoutDashboard, key: 'nav.home' },
+  { view: 'pos' as AppView, icon: Banknote, key: 'nav.pos' },
   { view: 'dashboard' as AppView, icon: ClipboardList, key: 'nav.sheets' },
   { view: 'ingredients' as AppView, icon: Package, key: 'nav.ingredients' },
   { view: 'finance' as AppView, icon: Wallet, key: 'nav.finance' },
@@ -30,6 +31,7 @@ const ALLOWED: Record<RestaurantRole, AppView[] | null> = {
   owner: null,
   viewer: ['dashboard'],
   finance: ['dashboard', 'finance'],
+  operator: ['pos', 'finance', 'dashboard'],
 };
 export function allowedViews(role: RestaurantRole): AppView[] | null { return ALLOWED[role]; }
 
@@ -47,7 +49,9 @@ export function Layout({ current, onNavigate, children }: Props) {
   const isActive = (v: AppView) => current === v || (v === 'dashboard' && (current === 'dish' || current === 'sheet'));
   const allowed = restaurant ? ALLOWED[restaurant.role] : null;
   const navItems = allowed ? NAV_ITEMS.filter(i => allowed.includes(i.view)) : NAV_ITEMS;
-  const mobileBar = navItems.slice(0, 4);
+  // Barra inferior do celular: atalhos mais usados (Insumos e demais ficam no Menu).
+  const BAR: AppView[] = ['home', 'pos', 'dashboard', 'finance'];
+  const mobileBar = [...navItems.filter(i => BAR.includes(i.view)), ...navItems.filter(i => !BAR.includes(i.view))].slice(0, 4);
   const showMenu = navItems.length > 4;
 
   return (
@@ -74,6 +78,7 @@ export function Layout({ current, onNavigate, children }: Props) {
             <div className="flex items-center gap-2 min-w-0 sm:pl-2 sm:ml-1 sm:border-l border-navy-700">
               <RestaurantLogo restaurant={restaurant} size={30} className="!rounded-lg" />
               <span className="font-semibold text-sm truncate min-w-[3.5rem] max-w-[10rem] sm:max-w-[16rem]" title={restaurant.name}>{restaurant.name}</span>
+              {restaurant.memberUnit && <span className="text-[11px] font-semibold bg-white/10 text-blue-100 rounded-md px-2 py-0.5 shrink-0">{restaurant.memberUnit}</span>}
               {restaurant.role !== 'owner' && (
                 <span className="hidden sm:inline text-[11px] font-semibold bg-blue-600/30 text-blue-100 rounded-md px-2 py-0.5 shrink-0">{t(`roles.${restaurant.role}`)}</span>
               )}

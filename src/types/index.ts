@@ -69,7 +69,7 @@ export interface CalculatedDish {
   foodCostDisponivel: boolean; // custo completo e preço > 0
 }
 
-export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance' | 'sheet' | 'profile';
+export type AppView = 'home' | 'dashboard' | 'ingredients' | 'shopping' | 'dish' | 'simulator' | 'converter' | 'export' | 'finance' | 'sheet' | 'profile' | 'pos';
 
 // ---------- Modo consultor: restaurantes e financeiro ----------
 
@@ -137,9 +137,10 @@ export interface Restaurant {
   role: RestaurantRole;
   profile: RestaurantProfile;
   goals: GoalsSettings;          // papel do usuário logado neste restaurante
+  memberUnit?: string | null;    // unidade autorizada (acesso restrito por unidade)
 }
 
-export type RestaurantRole = 'owner' | 'viewer' | 'finance';
+export type RestaurantRole = 'owner' | 'viewer' | 'finance' | 'operator';
 export type MemberRole = Exclude<RestaurantRole, 'owner'>;
 
 export interface RestaurantMember {
@@ -187,6 +188,8 @@ export interface RestaurantProfile {
   openDaysPerMonth?: number | null;
   avgTicket?: number | null;
   ticketByChannel?: Record<string, number | null>;
+  // Caixa e Vendas (configurado pelo dono)
+  pos?: { taxPct?: number | null; maxDiscountPct?: number | null; units?: string[] };
 }
 
 // Dados privados (só o dono vê): ficam numa tabela separada no banco.

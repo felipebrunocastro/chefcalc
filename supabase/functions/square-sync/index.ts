@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         restaurant_id: restaurantId, source: 'square', record_key: r.recordKey, channel: r.channel, unit: r.unit, kind: r.kind,
         external_order_id: r.externalOrderId, external_ref: r.externalRef, source_name: r.sourceName,
         sale_date: r.saleDate, payout_date: r.payoutDate, net_sales: r.netSales, commissions: 0, promotions: 0,
-        other_fees: r.otherFees, taxes: r.taxes, tips: r.tips, adjustments: 0, payout: r.payout, currency: r.currency,
+        other_fees: r.otherFees, taxes: r.taxes, tips: r.tips, adjustments: 0, payout: r.payout, currency: r.currency, payment_method: r.paymentMethod ?? null,
         match_status: p?.match_status ?? 'none', matched_source: p?.matched_source ?? null, matched_key: p?.matched_key ?? null,
         batch_id: batch?.id ?? null, raw: r.raw, updated_at: new Date().toISOString(),
       };

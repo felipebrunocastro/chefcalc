@@ -18,6 +18,15 @@ export interface SquareOrder {
   total_money?: Money; total_tax_money?: Money; total_tip_money?: Money;
   net_amounts?: { total_money?: Money; tax_money?: Money; tip_money?: Money; discount_money?: Money };
   return_amounts?: { total_money?: Money };
+  tenders?: { type?: string }[];
+}
+
+export function squarePayment(o: SquareOrder): 'cash' | 'card' | 'online' | 'other' {
+  const types = new Set((o.tenders ?? []).map(t => (t.type ?? '').toUpperCase()));
+  if (types.size === 1 && types.has('CASH')) return 'cash';
+  if (types.size === 1 && (types.has('CARD') || types.has('SQUARE_GIFT_CARD'))) return 'card';
+  if (types.size === 1 && (types.has('WALLET') || types.has('BANK_ACCOUNT'))) return 'online';
+  return 'other';
 }
 export interface SquarePayment { id: string; order_id?: string; processing_fee?: { amount_money?: Money }[] }
 export interface SquarePayout { id: string; location_id?: string; status?: string; amount_money?: Money; arrival_date?: string; created_at?: string }
@@ -53,6 +62,7 @@ export function normalizeSquareOrder(o: SquareOrder, fees: number, unitName: (lo
     tips: round2(tip),
     otherFees: round2(fees),
     currency: o.total_money?.currency ?? null,
+    paymentMethod: squarePayment(o),
     raw: { id: o.id, state: o.state, location_id: o.location_id, source: o.source?.name ?? null },
   });
 }

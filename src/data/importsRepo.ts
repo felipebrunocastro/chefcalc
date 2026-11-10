@@ -10,7 +10,7 @@ interface RecordRow {
   sale_date: string | null; payout_date: string | null;
   net_sales: number | string; commissions: number | string; promotions: number | string; other_fees: number | string;
   taxes: number | string; tips: number | string; adjustments: number | string; payout: number | string | null;
-  currency: string | null; match_status: SalesRecord['matchStatus']; matched_source: string | null; matched_key: string | null;
+  currency: string | null; payment_method?: SalesRecord['paymentMethod']; match_status: SalesRecord['matchStatus']; matched_source: string | null; matched_key: string | null;
   batch_id: string | null; imported_at: string; raw?: Record<string, unknown> | null;
 }
 
@@ -22,7 +22,7 @@ export const fromRow = (r: RecordRow): SalesRecord => ({
   saleDate: r.sale_date, payoutDate: r.payout_date,
   netSales: n(r.net_sales), commissions: n(r.commissions), promotions: n(r.promotions), otherFees: n(r.other_fees),
   taxes: n(r.taxes), tips: n(r.tips), adjustments: n(r.adjustments), payout: r.payout === null ? null : Number(r.payout),
-  currency: r.currency, matchStatus: r.match_status, matchedSource: r.matched_source, matchedKey: r.matched_key,
+  currency: r.currency, paymentMethod: r.payment_method ?? null, matchStatus: r.match_status, matchedSource: r.matched_source, matchedKey: r.matched_key,
   batchId: r.batch_id, importedAt: r.imported_at, raw: r.raw ?? null,
 });
 
@@ -32,6 +32,7 @@ const toRow = (restaurantId: string, r: SalesRecord, batchId?: string | null) =>
   sale_date: r.saleDate, payout_date: r.payoutDate,
   net_sales: r.netSales, commissions: r.commissions, promotions: r.promotions, other_fees: r.otherFees,
   taxes: r.taxes, tips: r.tips, adjustments: r.adjustments, payout: r.payout, currency: r.currency,
+  ...(r.paymentMethod ? { payment_method: r.paymentMethod } : {}),
   match_status: r.matchStatus, matched_source: r.matchedSource, matched_key: r.matchedKey,
   batch_id: batchId ?? r.batchId ?? null, raw: r.raw ?? null, updated_at: new Date().toISOString(),
 });

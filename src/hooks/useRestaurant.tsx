@@ -21,6 +21,10 @@ interface RestaurantContextValue {
   setDirty: (dirty: boolean) => void;
   /** Executa a ação, ou pergunta antes se houver alterações não salvas. */
   guard: (action: () => void) => void;
+  /** Acesso compartilhado removido pelo dono enquanto a tela estava aberta. */
+  revoked: boolean;
+  /** Confere no servidor se o acesso ao restaurante aberto continua valendo. */
+  checkAccess: () => Promise<boolean>;
 }
 
 const Ctx = createContext<RestaurantContextValue | undefined>(undefined);
@@ -36,6 +40,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const dirtyRef = useRef(false);
   const [pending, setPending] = useState<(() => void) | null>(null);
+  const [revoked, setRevoked] = useState(false);
 
   const reload = useCallback(async () => {
     if (!user) { setRestaurants([]); setLoading(false); return; }
@@ -56,7 +61,38 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     reload();
   }, [user, reload]);
 
+  // Operador sem restaurante próprio e com um único acesso: abre direto o restaurante autorizado.
+  // (só uma vez por sessão, para "Trocar cliente" continuar funcionando)
+  const autoSelected = useRef(false);
+  useEffect(() => {
+    if (currentId) { autoSelected.current = true; return; }
+    if (loading || !user || autoSelected.current) return;
+    const ops = restaurants.filter(r => r.role === 'operator');
+    if (ops.length === 1 && restaurants.every(r => r.role !== 'owner')) { autoSelected.current = true; setCurrentId(ops[0].id); }
+  }, [loading, currentId, user, restaurants]);
+
   const current = useMemo(() => restaurants.find(r => r.id === currentId) ?? null, [restaurants, currentId]);
+  const role = current?.role;
+
+  const checkAccess = useCallback(async () => {
+    if (!currentId || role === 'owner') return true;
+    try {
+      const list = await repo.getRestaurants();
+      const ok = list.some(r => r.id === currentId);
+      if (!ok) setRevoked(true);
+      return ok;
+    } catch { return true; } // falha de rede não é revogação
+  }, [currentId, role]);
+
+  // Acesso compartilhado: confere periodicamente (ex.: iPad com o caixa aberto).
+  useEffect(() => {
+    setRevoked(false);
+    if (!currentId || !role || role === 'owner') return;
+    const t = window.setInterval(() => { checkAccess(); }, 20000);
+    const onVis = () => { if (document.visibilityState === 'visible') checkAccess(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { window.clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
+  }, [currentId, role, checkAccess]);
 
   // A moeda de formatação segue o restaurante aberto (só exibição; valores não mudam).
   if (current) setCurrencyValue(current.currency);
@@ -97,7 +133,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const setDirty = useCallback((d: boolean) => { dirtyRef.current = d; }, []);
 
   const value: RestaurantContextValue = {
-    restaurants, dishCounts, loading, error, current, select, create, update, remove, reload, setDirty, guard,
+    restaurants, dishCounts, loading, error, current, select, create, update, remove, reload, setDirty, guard, revoked, checkAccess,
   };
 
   return (

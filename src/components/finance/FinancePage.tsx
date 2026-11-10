@@ -14,6 +14,7 @@ import type { BudgetItem, CostType, DeliveryPlatform, FinanceEntry, FinanceMonth
 import { VARIABLE_KINDS, monthSalesTotal } from '../../utils/finance';
 import { salesChannels } from '../../utils/breakeven';
 import { GoalsSection } from './GoalsSection';
+import { useLiveMonths } from '../pos/usePos';
 import { IntegrationsPanel } from '../integrations/IntegrationsPanel';
 import { PENDING_SIM_KEY, type SimValues } from '../landing/Simulator';
 
@@ -49,11 +50,13 @@ function SignedDiff({ v }: { v: number }) {
   return <span className={`font-mono ${cls}`}>{v > 0.004 ? '+' : ''}{money(v)}</span>;
 }
 
-export function FinancePage() {
+export function FinancePage({ readOnly = false }: { readOnly?: boolean }) {
   const { t, i18n } = useTranslation();
   const { current: restaurant, update } = useRestaurant();
   const locale = LOCALES[(i18n.language as keyof typeof LOCALES)] ?? 'pt-BR';
-  const { months, reload } = useFinanceMonths(restaurant?.id);
+  const { months: storedMonths, reload } = useFinanceMonths(restaurant?.id);
+  // Mesma base de vendas conciliadas do Caixa e Vendas / calendário.
+  const months = useLiveMonths(storedMonths);
   const [tab, setTab] = useState<'costs' | 'integrations'>(() =>
     (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('integration')) ? 'integrations' : 'costs');
 
@@ -168,6 +171,8 @@ export function FinancePage() {
         ))}
       </div>
 
+      {readOnly && <p className="rounded-xl bg-blue-50 border border-blue-200 text-blue-900 px-4 py-2 text-sm" role="note">{t('readonly.finance')}</p>}
+      <fieldset disabled={readOnly} className="min-w-0 border-0 p-0 m-0 space-y-6">
       {tab === 'integrations' ? <IntegrationsPanel months={months} onApplied={reload} /> : <>
       <PendingSimulation onApply={async v => {
         const items: BudgetItem[] = [
@@ -435,6 +440,7 @@ export function FinancePage() {
         )}
       </section>
       </>}
+      </fieldset>
     </div>
   );
 }

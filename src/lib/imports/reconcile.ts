@@ -18,7 +18,8 @@ export function reconcile(square: SalesRecord[], delivery: SalesRecord[]): Recon
   const updates = new Map<string, SalesRecord>();
   const put = (r: SalesRecord) => updates.set(`${r.source}|${r.recordKey}`, r);
   let matched = 0, review = 0;
-  const orders = delivery.filter(d => d.kind === 'order' && DELIVERY.has(d.source));
+  // Lado "plataforma": extratos de delivery e vendas em dinheiro do caixa ChefCalc (source 'chefcalc').
+  const orders = delivery.filter(d => d.kind === 'order' && (DELIVERY.has(d.source) || d.source === 'chefcalc'));
   const byId = new Map<string, SalesRecord[]>();
   for (const d of orders) {
     const k = normId(d.externalOrderId);
@@ -41,6 +42,11 @@ export function reconcile(square: SalesRecord[], delivery: SalesRecord[]): Recon
       decided = { d, status: ok ? 'matched' : 'review' };
     } else if (idHits.length > 1) {
       decided = { d: idHits[0], status: 'review' };
+    } else if (s.channel === 'counter' && s.paymentMethod !== 'card') {
+      // Venda de balcão no Square sem nº: pode ser a mesma venda em dinheiro do caixa ChefCalc → revisão.
+      const cand = orders.filter(d => d.source === 'chefcalc' && !takenDelivery.has(`${d.source}|${d.recordKey}`)
+        && dayDiff(s.saleDate, d.saleDate) === 0 && amountClose(s.netSales, d.netSales, 0.005, 0.01));
+      if (cand.length >= 1) decided = { d: cand[0], status: 'review' };
     } else if (DELIVERY.has(s.channel)) {
       // Sem nº correspondente: só sugere quando origem, data e valor coincidem — nunca concilia sozinho.
       const cand = orders.filter(d => d.source === s.channel && !takenDelivery.has(`${d.source}|${d.recordKey}`)

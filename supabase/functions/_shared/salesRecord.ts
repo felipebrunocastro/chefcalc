@@ -22,6 +22,7 @@ export interface SalesRecord {
   adjustments: number;
   payout: number | null;
   currency: string | null;
+  paymentMethod?: 'cash' | 'card' | 'online' | 'other' | null; // forma de pagamento (separada do canal)
   matchStatus: MatchStatus;
   matchedSource: string | null;
   matchedKey: string | null;

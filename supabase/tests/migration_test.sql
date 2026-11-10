@@ -27,6 +27,9 @@ insert into public.dishes (id, user_id, data) values
 \ir ../migrations/004_profile_goals.sql
 \ir ../migrations/005_integrations.sql
 \ir ../migrations/005_integrations.sql
+create schema if not exists extensions;
+\ir ../migrations/006_cash_register.sql
+\ir ../migrations/006_cash_register.sql
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
 do $$
@@ -197,6 +200,145 @@ do $$
 declare n int;
 begin
   select count(*) into n from public.sales_records; assert n = 0, 'outra conta não vê importações';
+end $$;
+reset role;
+
+-- ---------- 006: Caixa e Vendas + convite de operador ----------
+insert into auth.users values ('eeeeeeee-0000-0000-0000-000000000005');
+grant select, insert, update, delete on all tables in schema public to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+do $$
+declare ra uuid;
+begin
+  select id into ra from public.restaurants where name = 'Meu restaurante';
+  insert into public.restaurant_members (restaurant_id, email, role, status, unit, token_hash, expires_at)
+    values (ra, 'op@test.com', 'operator', 'pending', 'Centro', encode(digest('tok123', 'sha256'), 'hex'), now() + interval '7 days');
+  insert into public.pos_products (restaurant_id, name, category, price) values (ra, 'Burger', 'Lanches', 12);
+end $$;
+
+-- Operador antes de aceitar: não vê nada; conta com outro e-mail não aceita
+select set_config('request.jwt.claim.sub', 'eeeeeeee-0000-0000-0000-000000000005', false);
+select set_config('request.jwt.claim.email', 'op@test.com', false);
+do $$
+declare n int; rid uuid;
+begin
+  select count(*) into n from public.restaurants; assert n = 0, 'convite pendente não dá acesso';
+  select count(*) into n from public.invite_info('tok123'); assert n = 1, 'tela de aceite lê o convite';
+  perform set_config('request.jwt.claim.email', 'outro@test.com', false);
+  begin
+    perform public.accept_invite('tok123');
+    raise exception 'aceitou com e-mail errado';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claim.email', 'op@test.com', false);
+  rid := public.accept_invite('tok123');
+  assert rid is not null, 'convite aceito';
+  begin
+    perform public.accept_invite('tok123');
+    raise exception 'token reutilizado';
+  exception when invalid_parameter_value then null; end;
+end $$;
+
+-- Operador ativo
+do $$
+declare n int; ra uuid; r2 uuid; sid uuid; sale uuid; s record;
+begin
+  select id into ra from public.restaurants where name = 'Meu restaurante';
+  select count(*) into n from public.restaurants; assert n = 1, 'operador vê só o restaurante autorizado';
+  select count(*) into n from public.dishes; assert n = 1, 'operador lê fichas';
+  update public.dishes set data = '{}'; get diagnostics n = row_count; assert n = 0, 'operador não edita fichas';
+  select count(*) into n from public.finance_months; assert n >= 1, 'operador lê o Financeiro';
+  update public.finance_months set entries = '[]'; get diagnostics n = row_count; assert n = 0, 'operador não edita custos';
+  update public.restaurants set budget = '[]'; get diagnostics n = row_count; assert n = 0, 'operador não edita orçamento';
+  begin
+    insert into public.pos_products (restaurant_id, name, price) values (ra, 'Hack', 1);
+    raise exception 'operador não deveria editar o catálogo';
+  exception when insufficient_privilege then null; end;
+  update public.pos_products set price = 1; get diagnostics n = row_count; assert n = 0, 'operador não muda preços';
+  -- unidade autorizada
+  begin
+    insert into public.cash_sessions (restaurant_id, unit, op_date, opening_cash) values (ra, 'Outra', '2026-11-10', 0);
+    raise exception 'operador abriu caixa em unidade não autorizada';
+  exception when insufficient_privilege then null; end;
+  insert into public.cash_sessions (restaurant_id, unit, op_date, shift, responsible, opening_cash)
+    values (ra, 'Centro', '2026-11-10', 'Noite', 'Ana', 50) returning id into sid;
+  begin
+    insert into public.cash_sessions (restaurant_id, unit, op_date, opening_cash) values (ra, 'Centro', '2026-11-10', 0);
+    raise exception 'dois turnos abertos na mesma unidade';
+  exception when unique_violation then null; end;
+  insert into public.pos_sales (restaurant_id, session_id, op_date, code, client_token, items, subtotal, total, received, change)
+    values (ra, sid, '2000-01-01', 'CX-1', '11111111-1111-1111-1111-111111111111', '[{"name":"Burger","qty":15,"unitPrice":12}]', 180, 180, 200, 20) returning id into sale;
+  select op_date into s from public.pos_sales where id = sale;
+  assert s.op_date = '2026-11-10', 'venda herda a data operacional do turno';
+  begin
+    insert into public.pos_sales (restaurant_id, session_id, op_date, code, client_token, items, subtotal, total)
+      values (ra, sid, '2026-11-10', 'CX-2', '11111111-1111-1111-1111-111111111111', '[]', 180, 180);
+    raise exception 'toque repetido duplicou a venda';
+  exception when unique_violation then null; end;
+  begin
+    update public.pos_sales set total = 1 where id = sale;
+    raise exception 'venda alterada';
+  exception when insufficient_privilege then null; end;
+  insert into public.cash_movements (restaurant_id, session_id, kind, amount, reason) values (ra, sid, 'withdrawal', 30, 'Depósito no banco');
+  insert into public.cash_movements (restaurant_id, session_id, kind, amount, reason) values (ra, sid, 'refund', 10, 'Cliente devolveu');
+  insert into public.channel_summaries (restaurant_id, unit, op_date, channel, gross_sales, orders, fees) values (ra, 'Centro', '2026-11-10', 'grubhub', 100, 4, 15);
+  -- fechamento: esperado calculado no servidor (50 + 180 − 30 − 10 = 190), mesmo com valor adulterado
+  update public.cash_sessions set status = 'closed', counted_cash = 188, expected_cash = 999 where id = sid;
+  select * into s from public.cash_sessions where id = sid;
+  assert s.expected_cash = 190 and s.difference = -2, 'esperado 190, falta 2 (veio ' || s.expected_cash || ' / ' || s.difference || ')';
+  assert s.closed_by = 'eeeeeeee-0000-0000-0000-000000000005', 'quem fechou fica registrado';
+  begin
+    update public.cash_sessions set counted_cash = 190 where id = sid;
+    raise exception 'caixa fechado alterado sem motivo';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.correct_closed_session(sid, 190, '');
+    raise exception 'correção sem motivo';
+  exception when check_violation then null; end;
+  perform public.correct_closed_session(sid, 189, 'Recontagem com o gerente');
+  select * into s from public.cash_sessions where id = sid;
+  assert s.counted_cash = 189 and s.difference = -1 and jsonb_array_length(s.corrections) = 1, 'correção registrada com motivo';
+  begin
+    insert into public.pos_sales (restaurant_id, session_id, op_date, code, client_token, items, subtotal, total) values (ra, sid, '2026-11-10', 'CX-3', gen_random_uuid(), '[]', 1, 1);
+    raise exception 'venda em turno fechado';
+  exception when check_violation then null; end;
+  begin
+    insert into public.pos_sale_events (restaurant_id, sale_id, kind, reason) values (ra, sale, 'cancel', 'erro');
+    raise exception 'cancelou venda de turno fechado';
+  exception when check_violation then null; end;
+  -- segundo restaurante fora do acesso
+  select count(*) into n from public.cash_sessions where restaurant_id <> ra; assert n = 0, 'não vê caixas de outro restaurante';
+end $$;
+
+-- Dono vê o que o operador fez; revoga o acesso
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+do $$
+declare n int; ra uuid; r2 uuid;
+begin
+  select id into ra from public.restaurants where name = 'Meu restaurante';
+  select id into r2 from public.restaurants where name = 'Restaurante 2';
+  select count(*) into n from public.pos_sales where restaurant_id = ra; assert n = 1, 'dono vê a venda do operador';
+  insert into public.cash_sessions (restaurant_id, unit, op_date, opening_cash) values (ra, 'Centro', '2026-11-11', 20);
+  insert into public.cash_sessions (restaurant_id, unit, op_date, opening_cash) values (r2, '', '2026-11-11', 0);
+  delete from public.restaurant_members where email = 'op@test.com';
+end $$;
+select set_config('request.jwt.claim.sub', 'eeeeeeee-0000-0000-0000-000000000005', false);
+select set_config('request.jwt.claim.email', 'op@test.com', false);
+do $$
+declare n int; sid uuid;
+begin
+  select count(*) into n from public.cash_sessions; assert n = 0, 'acesso revogado: nada visível';
+  reset role;
+  select id into sid from public.cash_sessions where op_date = '2026-11-11' and unit = 'Centro';
+  set role authenticated;
+  begin
+    insert into public.pos_sales (restaurant_id, session_id, op_date, code, client_token, items, subtotal, total)
+      select restaurant_id, id, op_date, 'CX-9', gen_random_uuid(), '[]', 5, 5 from public.cash_sessions where id = sid;
+    get diagnostics n = row_count;
+    assert n = 0, 'revogado não registra venda';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 select 'MIGRATION TESTS PASSED' as result;
