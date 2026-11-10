@@ -23,7 +23,7 @@ export function salesChannels(profile: RestaurantProfile): Channel[] {
 
 // Dados faltantes (chaves i18n goals.missing.*) e premissas (goals.assumption.*).
 export type Missing = 'referenceRevenue' | 'mixSum' | 'sales' | 'inventory' | 'month' | 'fixedCosts';
-export type Assumption = 'purchasesAsCogs' | 'monthInProgress' | 'ownerPay' | 'mixFees' | 'pctItems';
+export type Assumption = 'purchasesAsCogs' | 'monthInProgress' | 'ownerPay' | 'mixFees' | 'pctItems' | 'importedSales' | 'importedFees';
 
 export interface IncludedLine { label: string; kind: 'fixed' | 'variable'; amount?: number; pct?: number }
 
@@ -99,13 +99,22 @@ export function basisFromMonth(month: FinanceMonth | undefined, goals: GoalsSett
   if (!month) { out.missing.push('month'); return out; }
   if (month.status !== 'closed') out.assumptions.push('monthInProgress');
   let variable = 0, purchases = 0;
+  const importedFees = month.sales?.imported?.fees ?? {};
+  const feeChannels = new Set(Object.keys(importedFees).filter(k => importedFees[k] !== 0));
   for (const e of month.entries) {
     if (!isEntered(e)) continue;
+    // Taxas do canal importado vêm do extrato da plataforma: o lançamento manual do mesmo canal não soma.
+    if (e.plataforma && feeChannels.has(e.plataforma)) continue;
     const p = splitItem({ ...e, unidade: 'money' });
     if (p.fixed) { out.fixed += p.fixed; out.included.push({ label: e.categoria, kind: 'fixed', amount: p.fixed }); }
     if (!p.variable) continue;
     if (e.natureza === 'cogs') purchases += p.variable;
     else { variable += p.variable; out.included.push({ label: e.categoria, kind: 'variable', amount: p.variable }); }
+  }
+  if (feeChannels.size) {
+    const f = [...feeChannels].reduce((a, k) => a + importedFees[k], 0);
+    variable += f; out.included.push({ label: 'importedFees', kind: 'variable', amount: f });
+    out.assumptions.push('importedFees');
   }
   ownerPay(goals, out);
   // CMV: custo efetivamente consumido = estoque inicial + compras − estoque final.
@@ -122,6 +131,7 @@ export function basisFromMonth(month: FinanceMonth | undefined, goals: GoalsSett
     }
   }
   const sales = monthSalesTotal(month);
+  if (sales.imported) out.assumptions.push('importedSales');
   if (!sales.informed || sales.total <= 0) out.missing.push('sales');
   else out.salesReference = sales.total;
   if (out.fixed <= 0) out.missing.push('fixedCosts');

@@ -1,0 +1,5 @@
+Timestamp Local Date,Store Name,DoorDash Order ID,Transaction Type,Subtotal,Tax (subtotal),Commission,Marketing Fees,Payment Processing Fee,Error Charges,Adjustments,Net Total,Payout Date
+10/05/2026,Bistro Azul - Brickell,DD-1001,Order,40.00,2.80,-8.00,-2.00,-1.20,0.00,0.00,31.60,10/08/2026
+10/12/2026,Bistro Azul - Brickell,DD-1002,Order,25.00,1.75,-5.00,0.00,-0.75,0.00,0.00,20.99,10/15/2026
+10/12/2026,Bistro Azul - Brickell,DD-1002,Refund,-25.00,-1.75,5.00,0.00,0.75,0.00,0.00,-20.99,10/15/2026
+10/31/2026,Bistro Azul - Brickell,DD-1003,Order,"1,060.00",74.20,-212.00,0.00,-31.80,0.00,0.00,890.40,11/03/2026

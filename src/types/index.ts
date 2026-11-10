@@ -108,6 +108,14 @@ export interface MonthSales {
   deposits?: Record<string, number | null>; // depósito líquido da plataforma (só conciliação)
   inventoryStart?: number | null;           // estoque inicial (para CMV consumido)
   inventoryEnd?: number | null;             // estoque final
+  // Camada importada (separada dos valores digitados): aplicada a partir de Integrações e importações.
+  imported?: {
+    channels: Record<string, number>;       // vendas líquidas por canal
+    fees: Record<string, number>;           // comissões + promoções + outras taxas por canal
+    payouts: Record<string, number>;        // repasses com data no mês
+    appliedAt: string;
+    recordCount: number;
+  };
 }
 
 export interface FinanceMonth {

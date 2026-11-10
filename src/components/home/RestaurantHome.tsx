@@ -5,10 +5,12 @@ import { Plus, Package, Wallet, ClipboardList, Receipt, Truck, Calculator, Share
 import { Mascot } from '../ui/Mascot';
 import { basisFromBudget, basisFromMonth, computeTargets, DEFAULT_SCENARIOS } from '../../utils/breakeven';
 import { profileCompletion } from '../../utils/profile';
+import { useImports, useChannelLabel } from '../integrations/IntegrationsPanel';
+import { summarizeMonth } from '../../lib/imports/aggregate';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { useDishes } from '../../hooks/useDishes';
 import { formatCurrency } from '../../lib/currency';
-import { actualTotals, budgetTotals, currentPeriod, deliveryTotals, formatPeriod, monthState, monthSalesTotal } from '../../utils/finance';
+import { actualTotals, budgetTotals, currentPeriod, deliveryTotals, formatPeriod, monthState, monthSalesTotal, monthSalesByChannel } from '../../utils/finance';
 import { useFinanceMonths, StateBadge } from '../finance/FinancePage';
 import { RestaurantLogo } from '../restaurants/RestaurantLogo';
 import type { AppView } from '../../types';
@@ -22,6 +24,8 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
   const { months } = useFinanceMonths(restaurant?.id);
   const locale = LOCALES[(i18n.language as keyof typeof LOCALES)] ?? 'pt-BR';
   const [sharing, setSharing] = useState(false);
+  const { records } = useImports(restaurant?.id);
+  const channelLabel = useChannelLabel();
 
   const period = currentPeriod();
   const month = months.find(m => m.period === period);
@@ -48,11 +52,21 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
   const goalResult = targets.byMargin(goalPct);
   const sales = monthSalesTotal(month);
   const completion = profileCompletion(restaurant);
+  const imported = summarizeMonth(records, period);
+  const byChannel = monthSalesByChannel(month);
+  const channelRows = [...new Set([...Object.keys(byChannel), ...imported.channels.map(c => c.channel)])].map(ch => {
+    const imp = imported.channels.find(c => c.channel === ch);
+    const v = byChannel[ch] ?? (imp ? { value: imp.netSales, origin: 'imported' as const } : { value: 0, origin: 'manual' as const });
+    return { ch, value: v.value, origin: v.origin, rate: imp?.effectiveFeeRate ?? null, payouts: imp?.payoutsInMonth ?? null, div: imp?.payoutDivergences ?? 0 };
+  }).sort((a, b) => b.value - a.value);
+  const salesNow = sales.informed ? sales.total : (imported.totals.netSales || 0);
+  const salesKnown = sales.informed || imported.channels.length > 0;
+  const progress = (r: typeof goalResult) => (r.status === 'ok' && r.monthly! > 0 && salesKnown ? Math.min(100, (salesNow / r.monthly!) * 100) : null);
   const targetText = (r: typeof goalResult) =>
     r.status === 'ok' ? formatCurrency(r.monthly!) : r.status === 'infeasible' ? t('goals.infeasible') : r.status === 'noBreakeven' ? t('goals.noBreakeven') : t('home.goalsMissing');
   const remaining = (r: typeof goalResult) => {
-    if (r.status !== 'ok' || !sales.informed) return null;
-    const diff = r.monthly! - sales.total;
+    if (r.status !== 'ok' || !salesKnown) return null;
+    const diff = r.monthly! - salesNow;
     return diff <= 0 ? <span className="text-emerald-700 font-semibold">{t('home.reached')}</span> : <span className="text-slate-600">{t('home.remaining', { v: formatCurrency(diff) })}</span>;
   };
   const max = Math.max(1, ...bars.flatMap(b => [b.est, b.act]));
@@ -129,6 +143,49 @@ export function RestaurantHome({ onNavigate }: { onNavigate: (v: AppView, dishId
           <div className="mt-1"><StateBadge state={state} /></div>
         </div>
       </section>
+
+      {(channelRows.length > 0 || imported.divergences > 0) && (
+        <section className="grid lg:grid-cols-2 gap-3">
+          <div className="card p-4">
+            <h2 className="font-semibold text-navy-900 mb-2 text-sm">{t('home.channelsTitle', { month: monthLabel })}</h2>
+            <ul className="space-y-2">
+              {channelRows.map(r => (
+                <li key={r.ch} className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-navy-900">{channelLabel(r.ch)}</span>
+                    <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${r.origin === 'imported' ? 'bg-violet-100 text-violet-800' : 'bg-slate-100 text-slate-600'}`}>{t(r.origin === 'imported' ? 'home.sourceImported' : 'home.sourceManual')}</span>
+                    <span className="ml-auto font-mono font-semibold">{formatCurrency(r.value)}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex flex-wrap gap-x-3">
+                    {r.rate !== null && <span>{t('home.effectiveRate', { pct: `${(r.rate * 100).toFixed(1)}%` })}</span>}
+                    {r.payouts !== null && <span>{t('home.payouts')}: {formatCurrency(r.payouts)}</span>}
+                    {r.div > 0 && <span className="text-red-700 font-semibold">{r.div} {t('home.divergences')}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {imported.review > 0 && <p className="text-xs text-amber-800 mt-2">{t('integ.pendingReviewAmount', { v: formatCurrency(imported.reviewAmount) })} · <button onClick={() => onNavigate('finance')} className="underline">{t('integ.review')}</button></p>}
+          </div>
+          <div className="card p-4">
+            <h2 className="font-semibold text-navy-900 mb-3 text-sm">{t('home.progressTitle')}</h2>
+            {([['progressBreakeven', targets.breakeven], ['progressGoal', goalResult]] as const).map(([k, r]) => {
+              const p = progress(r);
+              return (
+                <div key={k} className="mb-3">
+                  <div className="flex justify-between text-xs text-slate-600 mb-1">
+                    <span>{t(`home.${k}`, { pct: goalPct })}</span>
+                    <span className="font-mono">{p === null ? '—' : `${p.toFixed(0)}%`}</span>
+                  </div>
+                  <div className="h-3 bg-blue-100 rounded-full" role="progressbar" aria-valuenow={p === null ? undefined : Math.round(p)} aria-valuemin={0} aria-valuemax={100} aria-label={t(`home.${k}`, { pct: goalPct })}>
+                    <div className={`h-3 rounded-full ${p !== null && p >= 100 ? 'bg-emerald-500' : 'bg-blue-600'}`} style={{ width: `${p ?? 0}%` }} />
+                  </div>
+                  <div className="text-[11px] mt-0.5">{r.status === 'ok' && salesKnown ? remaining(r) : <span className="text-slate-400">{!salesKnown ? t('home.salesNotInformed') : t('home.goalsMissing')}</span>}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map(k => (

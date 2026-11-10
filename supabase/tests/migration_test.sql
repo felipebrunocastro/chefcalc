@@ -25,6 +25,8 @@ insert into public.dishes (id, user_id, data) values
 \ir ../migrations/003_sharing.sql
 \ir ../migrations/004_profile_goals.sql
 \ir ../migrations/004_profile_goals.sql
+\ir ../migrations/005_integrations.sql
+\ir ../migrations/005_integrations.sql
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
 do $$
@@ -95,6 +97,11 @@ begin
   insert into public.restaurant_members (restaurant_id, email, role) values (ra, 'viewer@test.com', 'viewer'), (ra, 'fin@test.com', 'finance');
   insert into public.finance_months (restaurant_id, period, entries) values (ra, '2026-11', '[]');
   insert into public.restaurant_private (restaurant_id, data) values (ra, '{"consultingNotes":"segredo"}');
+  insert into public.sales_records (restaurant_id, source, record_key, channel, net_sales) values (ra, 'doordash', 'order:1', 'doordash', 20);
+  insert into public.sales_records (restaurant_id, source, record_key, channel, net_sales) values (ra, 'doordash', 'order:1', 'doordash', 25)
+    on conflict (restaurant_id, source, record_key) do update set net_sales = excluded.net_sales;
+  assert (select count(*) from public.sales_records) = 1, 'reimportação não duplica';
+  assert (select net_sales from public.sales_records) = 25, 'reimportação atualiza';
   update public.restaurants set profile = '{"city":"Miami"}' where id = ra;
 end $$;
 
@@ -110,6 +117,7 @@ begin
   select count(*) into n from public.ingredients; assert n = 1, 'viewer lê insumos para o custo';
   select count(*) into n from public.finance_months; assert n = 0, 'viewer não vê financeiro';
   select count(*) into n from public.restaurant_private; assert n = 0, 'viewer não lê dados privados';
+  select count(*) into n from public.sales_records; assert n = 0, 'viewer não vê importações';
   select count(*) into n from public.restaurants where profile->>'city' = 'Miami'; assert n = 1, 'viewer lê perfil público';
   update public.dishes set data = '{}' ; get diagnostics n = row_count; assert n = 0, 'viewer não edita ficha';
   delete from public.dishes; get diagnostics n = row_count; assert n = 0, 'viewer não apaga ficha';
@@ -146,6 +154,8 @@ begin
     raise exception 'finance não deveria editar o perfil';
   exception when insufficient_privilege then null; end;
   select count(*) into n from public.restaurant_private; assert n = 0, 'finance não lê dados privados';
+  select count(*) into n from public.sales_records; assert n = 1, 'finance vê importações';
+  insert into public.sales_records (restaurant_id, source, record_key, channel) values (ra, 'ubereats', 'order:9', 'ubereats');
   begin
     update public.restaurants set name = 'hack' where id = ra;
     raise exception 'finance não deveria renomear';
@@ -168,6 +178,25 @@ declare n int;
 begin
   select count(*) into n from public.restaurants; assert n = 0, 'acesso removido';
   select count(*) into n from public.finance_months; assert n = 0, 'acesso removido (financeiro)';
+end $$;
+reset role;
+insert into public.integration_secrets (restaurant_id, provider, access_token)
+  select id, 'square', 'tok' from public.restaurants where name = 'Restaurante 2';
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.integration_secrets; assert n = 0, 'tokens nunca legíveis pelo app';
+  select count(*) into n from public.sales_records; assert n = 2, 'dono vê importações do próprio restaurante';
+end $$;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-000000000002', false);
+select set_config('request.jwt.claim.email', 'b@test.com', false);
+do $$
+declare n int;
+begin
+  select count(*) into n from public.sales_records; assert n = 0, 'outra conta não vê importações';
 end $$;
 reset role;
 select 'MIGRATION TESTS PASSED' as result;

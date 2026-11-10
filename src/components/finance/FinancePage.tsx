@@ -14,6 +14,7 @@ import type { BudgetItem, CostType, DeliveryPlatform, FinanceEntry, FinanceMonth
 import { VARIABLE_KINDS, monthSalesTotal } from '../../utils/finance';
 import { salesChannels } from '../../utils/breakeven';
 import { GoalsSection } from './GoalsSection';
+import { IntegrationsPanel } from '../integrations/IntegrationsPanel';
 
 const LOCALES = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' } as const;
 
@@ -52,6 +53,8 @@ export function FinancePage() {
   const { current: restaurant, update } = useRestaurant();
   const locale = LOCALES[(i18n.language as keyof typeof LOCALES)] ?? 'pt-BR';
   const { months, reload } = useFinanceMonths(restaurant?.id);
+  const [tab, setTab] = useState<'costs' | 'integrations'>(() =>
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('integration')) ? 'integrations' : 'costs');
 
   // ---- Orçamento de referência ----
   const [budget, setBudget] = useState<BudgetItem[]>(restaurant?.budget ?? []);
@@ -154,6 +157,17 @@ export function FinancePage() {
         <h1 className="text-2xl font-bold text-navy-900">{t('finance.title')}</h1>
         <span className="ml-auto text-xs font-medium text-slate-500 bg-white border border-blue-100 rounded-md px-2 py-1">{restaurant.currency}</span>
       </div>
+
+      <div role="tablist" aria-label={t('finance.title')} className="flex gap-1 bg-white border border-blue-100 rounded-xl p-1 w-full sm:w-fit">
+        {(['costs', 'integrations'] as const).map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold ${tab === k ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50'}`}>
+            {t(k === 'costs' ? 'integ.tabCosts' : 'integ.tabIntegrations')}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'integrations' ? <IntegrationsPanel months={months} onApplied={reload} /> : <>
 
       {/* ---------------- Tabela 1: estimativa ---------------- */}
       <section className="card p-4 md:p-5" aria-labelledby="budget-h">
@@ -407,6 +421,7 @@ export function FinancePage() {
           </ul>
         )}
       </section>
+      </>}
     </div>
   );
 }
@@ -481,6 +496,11 @@ function SalesInputs({ sales, entries, channels, onChange }: {
               <input id={`sale-${c.id}`} type="number" step="0.01" inputMode="decimal" placeholder={t('sales.notInformed')}
                 value={sales.channels?.[c.id] ?? ''} onChange={e => onChange({ ...sales, channels: { ...(sales.channels ?? {}), [c.id]: num(e.target.value) } })}
                 className="field !py-1.5 text-right font-mono placeholder:italic placeholder:text-slate-400 mt-1" />
+              {typeof sales.imported?.channels?.[c.id] === 'number' && (
+                <p className={`text-[11px] mt-1 ${typeof sales.channels?.[c.id] === 'number' ? 'text-slate-400 line-through' : 'text-violet-700 font-medium'}`}>
+                  {t('sales.importedValue', { v: formatCurrency(sales.imported!.channels[c.id]) })}
+                </p>
+              )}
               {c.delivery && (
                 <>
                   <label className="text-[11px] text-slate-500 mt-2 block" htmlFor={`dep-${c.id}`}>{t('sales.deposit')}</label>

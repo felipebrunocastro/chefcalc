@@ -113,11 +113,17 @@ export function formatPeriod(period: string, locale: string): string {
 }
 
 // Soma das vendas líquidas lançadas no mês (null = canal não informado).
-export function monthSalesTotal(m: FinanceMonth | undefined): { total: number; informed: boolean } {
-  const ch = m?.sales?.channels ?? {};
-  let total = 0, informed = false;
-  for (const v of Object.values(ch)) {
-    if (typeof v === 'number' && Number.isFinite(v)) { total += v; informed = true; }
+// Por canal: valor manual quando digitado; senão, o valor importado.
+export function monthSalesByChannel(m: FinanceMonth | undefined): Record<string, { value: number; origin: 'manual' | 'imported' }> {
+  const out: Record<string, { value: number; origin: 'manual' | 'imported' }> = {};
+  for (const [ch, v] of Object.entries(m?.sales?.imported?.channels ?? {})) out[ch] = { value: v, origin: 'imported' };
+  for (const [ch, v] of Object.entries(m?.sales?.channels ?? {})) {
+    if (typeof v === 'number' && Number.isFinite(v)) out[ch] = { value: v, origin: 'manual' };
   }
-  return { total, informed };
+  return out;
+}
+
+export function monthSalesTotal(m: FinanceMonth | undefined): { total: number; informed: boolean; imported: boolean } {
+  const by = Object.values(monthSalesByChannel(m));
+  return { total: by.reduce((a, x) => a + x.value, 0), informed: by.length > 0, imported: by.some(x => x.origin === 'imported') };
 }

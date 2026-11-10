@@ -217,7 +217,7 @@ export function GoalsSection({ months }: { months: FinanceMonth[] }) {
             <ul className="text-xs text-slate-700 space-y-0.5">
               {basis.included.map((l, i) => (
                 <li key={i} className="flex justify-between gap-2 border-b border-slate-100 py-0.5">
-                  <span>{['ownerPay', 'mixFees', 'cogsConsumed', 'cogsPurchases'].includes(l.label) ? t(`goals.included.${l.label}`) : l.label || '—'} <span className="text-slate-400">({t(l.kind === 'fixed' ? 'finance.fixed' : 'finance.variable')})</span></span>
+                  <span>{['ownerPay', 'mixFees', 'cogsConsumed', 'cogsPurchases', 'importedFees'].includes(l.label) ? t(`goals.included.${l.label}`) : l.label || '—'} <span className="text-slate-400">({t(l.kind === 'fixed' ? 'finance.fixed' : 'finance.variable')})</span></span>
                   <span className="font-mono">{l.pct !== undefined ? `${l.pct.toFixed(1)}%` : formatCurrency(l.amount ?? 0)}</span>
                 </li>
               ))}

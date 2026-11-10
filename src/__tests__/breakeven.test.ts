@@ -93,4 +93,19 @@ describe('ponto de equilíbrio', () => {
     const g: GoalsSettings = { useMix: true, mix: { counter: { share: 50, feePct: 0 }, doordash: { share: 50, feePct: 20 } } };
     expect(ordersPerDay(1000, p, g)).toBe(Math.ceil(500 / 20 + 500 / 40)); // 25 + 12.5 → 38
   });
+
+  it('mês com dados importados: vendas e taxas vêm do extrato, sem dupla contagem', () => {
+    const m: FinanceMonth = {
+      restaurantId: 'r', period: '2026-10', status: 'closed', estimateSnapshot: [],
+      entries: [
+        { id: 'a', categoria: 'Aluguel', descricao: '', tipo: 'fixed', valor: 10000 },
+        { id: 'c', categoria: 'DoorDash', descricao: 'Comissão', tipo: 'variable', valor: 999, plataforma: 'doordash', natureza: 'fees' },
+      ],
+      sales: { channels: { counter: 15000 }, imported: { channels: { counter: 14000, doordash: 5000 }, fees: { doordash: 1000 }, payouts: {}, appliedAt: '', recordCount: 3 } },
+    };
+    const b = basisFromMonth(m, { cogsMode: 'purchases' });
+    expect(b.salesReference).toBe(20000);              // balcão manual (15000) + DoorDash importado (5000)
+    expect(b.variableRate).toBeCloseTo(1000 / 20000);  // comissão manual de 999 ignorada
+    expect(b.assumptions).toEqual(expect.arrayContaining(['importedSales', 'importedFees']));
+  });
 });
