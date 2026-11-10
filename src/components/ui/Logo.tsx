@@ -6,7 +6,9 @@ export const LOGO_ACCENT = '#38bdf8';
 
 export function Logo({ tone = 'dark', height = 32, className = '', showIcon = true }: Props) {
   const ink = tone === 'light' ? '#ffffff' : '#0b1f4b';
-  const w = showIcon ? 178 : 132;
+  // Texto com largura fixa (textLength) para não depender da fonte do aparelho:
+  // sem isso, fontes mais largas cortavam o último "c" de "ChefCalc".
+  const w = showIcon ? 178 : 146;
   return (
     <svg viewBox={`0 0 ${w} 40`} height={height} width={(height * w) / 40} className={className} role="img" aria-label="ChefCalc">
       {/* chapéu */}
@@ -15,7 +17,7 @@ export function Logo({ tone = 'dark', height = 32, className = '', showIcon = tr
         <path d="M10 24h24v8.5a1.5 1.5 0 0 1-1.5 1.5h-21A1.5 1.5 0 0 1 10 32.5z" />
         <path d="M15 28.5h14" />
       </g>
-      <text x="46" y="29" fontFamily="Inter, system-ui, -apple-system, sans-serif" fontSize="22" fontWeight="800" letterSpacing="-0.5">
+      <text x="46" y="29" fontFamily="Inter, system-ui, -apple-system, sans-serif" fontSize="22" fontWeight="800" textLength="96" lengthAdjust="spacingAndGlyphs">
         <tspan fill={ink}>Chef</tspan><tspan fill={LOGO_ACCENT}>Calc</tspan>
       </text>
       {showIcon && (

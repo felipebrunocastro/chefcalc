@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePlus, Trash2, X } from 'lucide-react';
-import { CURRENCIES, type Currency } from '../../lib/currency';
+import { currencyOptions, type Currency } from '../../lib/currency';
 import { fileToLogoDataUrl } from '../../lib/logo';
 import { RestaurantLogo } from './RestaurantLogo';
 import type { Restaurant } from '../../types';
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function RestaurantForm({ initial, onSubmit, onCancel, onDelete }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState(initial?.name ?? '');
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? 'USD');
   const [logo, setLogo] = useState<string | null>(initial?.logo ?? null);
@@ -51,7 +51,7 @@ export function RestaurantForm({ initial, onSubmit, onCancel, onDelete }: Props)
 
         <label className="label" htmlFor="rf-cur">{t('restaurants.currency')}</label>
         <select id="rf-cur" value={currency} onChange={e => setCurrency(e.target.value as Currency)} className="field">
-          {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
+          {currencyOptions(i18n.language).map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
         </select>
         <p className="text-xs text-slate-500 mt-1 mb-4">{t('restaurants.currencyHint')}</p>
 

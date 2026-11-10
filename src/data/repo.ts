@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Ingredient, Dish, Restaurant, FinanceMonth, BudgetItem, MemberRole, RestaurantMember, RestaurantRole, RestaurantProfile, GoalsSettings, RestaurantPrivate, MonthSales } from '../types';
-import type { Currency } from '../lib/currency';
+import { isCurrency, DEFAULT_CURRENCY, type Currency } from '../lib/currency';
 
 // Todas as linhas são protegidas por RLS no Supabase: o usuário só alcança
 // restaurantes próprios, e insumos/fichas/finanças só dos seus restaurantes.
@@ -24,7 +24,7 @@ const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaur
   role,
   id: r.id,
   name: r.name,
-  currency: (r.currency || 'BRL') as Currency,
+  currency: (isCurrency(r.currency) ? r.currency : DEFAULT_CURRENCY) as Currency,
   logo: r.logo,
   budget: Array.isArray(r.budget) ? r.budget : [],
   createdAt: r.created_at,

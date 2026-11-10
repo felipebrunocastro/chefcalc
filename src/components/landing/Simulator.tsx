@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RotateCcw, ArrowRight, Info, AlertTriangle } from 'lucide-react';
 import { basisFromBudget, computeTargets } from '../../utils/breakeven';
-import { CURRENCIES, type Currency } from '../../lib/currency';
+import { currencyOptions, type Currency } from '../../lib/currency';
 import type { BudgetItem } from '../../types';
 
 export interface SimValues { fixed: number; variablePct: number; marginPct: number; days: number | null; ticket: number | null; currency: Currency }
@@ -71,7 +71,7 @@ export function Simulator({ onApply }: { onApply: (v: SimValues) => void }) {
         <div>
           <label htmlFor="sim-currency" className="block text-xs font-medium text-slate-600 mb-1">{t('landing.sim.currency')}</label>
           <select id="sim-currency" value={v.currency} onChange={e => setV(x => ({ ...x, currency: e.target.value as Currency }))} className="field">
-            {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
+            {currencyOptions(i18n.language).map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
         </div>
         <button onClick={() => setV(SIM_EXAMPLE)} className="text-sm text-blue-700 hover:underline inline-flex items-center gap-1"><RotateCcw size={14} /> {t('landing.sim.reset')}</button>
