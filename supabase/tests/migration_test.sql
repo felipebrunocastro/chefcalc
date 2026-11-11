@@ -8,6 +8,7 @@ create or replace function auth.uid() returns uuid language sql stable as
 create or replace function auth.jwt() returns jsonb language sql stable as
   $$ select jsonb_build_object('email', current_setting('request.jwt.claim.email', true)) $$;
 do $$ begin create role authenticated; exception when duplicate_object then null; end $$;
+do $$ begin create role anon; exception when duplicate_object then null; end $$;
 grant usage on schema public, auth to authenticated;
 
 \ir ../schema.sql
@@ -339,6 +340,52 @@ begin
     get diagnostics n = row_count;
     assert n = 0, 'revogado não registra venda';
   exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- 007: painel administrativo -------------------------------------------------
+alter table auth.users add column if not exists email text;
+alter table auth.users add column if not exists created_at timestamptz default now();
+alter table auth.users add column if not exists last_sign_in_at timestamptz;
+alter table auth.users add column if not exists email_confirmed_at timestamptz;
+update auth.users set email = 'a@test.com', email_confirmed_at = now() where id = 'aaaaaaaa-0000-0000-0000-000000000001';
+\ir ../migrations/007_admin.sql
+\ir ../migrations/007_admin.sql
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-000000000002', false);
+do $$
+begin
+  assert not public.is_app_admin(), 'não-admin';
+  begin
+    perform public.admin_overview();
+    assert false, 'não-admin não pode ver o painel';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.app_admins (user_id) values ('bbbbbbbb-0000-0000-0000-000000000002');
+    assert false, 'ninguém se promove a admin pelo app';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+insert into public.app_admins (user_id) values ('aaaaaaaa-0000-0000-0000-000000000001') on conflict do nothing;
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+do $$
+declare o jsonb; a jsonb; rd int; rr int; dd int;
+begin
+  assert public.is_app_admin(), 'admin';
+  o := public.admin_overview();
+  reset role;
+  select count(*) into rd from public.restaurants;
+  select count(*) into dd from public.dishes;
+  select count(*) into rr from auth.users;
+  assert (o->'totals'->>'users')::int = rr, 'total de usuários';
+  assert (o->'totals'->>'restaurants')::int = rd, 'total de restaurantes';
+  assert (o->'totals'->>'dishes')::int = dd, 'total de fichas';
+  select x into a from jsonb_array_elements(o->'users') x where x->>'id' = 'aaaaaaaa-0000-0000-0000-000000000001';
+  assert (a->>'restaurantCount')::int = (select count(*) from public.restaurants where user_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 'negócios do usuário A';
+  assert (a->>'dishCount')::int = (select count(*) from public.dishes d join public.restaurants r on r.id = d.restaurant_id where r.user_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 'fichas do usuário A';
+  assert (a->>'isAdmin')::boolean and a->>'email' = 'a@test.com', 'dados do usuário A';
+  assert (a->>'dishCount')::int >= 1, 'A tem ficha';
 end $$;
 reset role;
 select 'MIGRATION TESTS PASSED' as result;

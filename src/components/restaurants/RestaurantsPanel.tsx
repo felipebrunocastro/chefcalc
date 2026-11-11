@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, ChevronRight, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { isAppAdmin } from '../../data/adminRepo';
+import { navigate } from '../../lib/router';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { Mascot } from '../ui/Mascot';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -13,6 +15,8 @@ export function RestaurantsPanel() {
   const { restaurants, dishCounts, loading, error, select, create, update, remove } = useRestaurant();
   const [form, setForm] = useState<{ edit?: Restaurant } | null>(null);
   const [toDelete, setToDelete] = useState<Restaurant | null>(null);
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => { let on = true; isAppAdmin().then(ok => { if (on) setAdmin(ok); }); return () => { on = false; }; }, []);
   const own = restaurants.filter(r => r.role === 'owner');
   const shared = restaurants.filter(r => r.role !== 'owner');
 
@@ -58,9 +62,12 @@ export function RestaurantsPanel() {
           <h1 className="text-2xl md:text-3xl font-bold text-navy-900">{t('restaurants.title')}</h1>
           <p className="text-slate-600 mt-1">{t('restaurants.welcome')}</p>
         </div>
-        <button onClick={() => setForm({})} className="btn-primary">
-          <Plus size={16} /> {t('restaurants.add')}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button onClick={() => setForm({})} className="btn-primary">
+            <Plus size={16} /> {t('restaurants.add')}
+          </button>
+          {admin && <button onClick={() => navigate('/admin')} className="btn-secondary"><ShieldCheck size={16} /> {t('admin.open')}</button>}
+        </div>
       </section>
 
       {error && (

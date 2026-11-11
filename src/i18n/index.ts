@@ -8,6 +8,7 @@ import { extra2 } from './extra2';
 import { extra3 } from './extra3';
 import { landingText } from './landing';
 import { extra4 } from './extra4';
+import { extra5 } from './extra5';
 
 type Obj = Record<string, unknown>;
 function merge(base: Obj, over: Obj): Obj {
@@ -28,9 +29,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      pt: { translation: merge(merge(merge(merge(merge(pt, extra.pt), extra2.pt), extra3.pt), landingText.pt), extra4.pt) },
-      en: { translation: merge(merge(merge(merge(merge(en, extra.en), extra2.en), extra3.en), landingText.en), extra4.en) },
-      es: { translation: merge(merge(merge(merge(merge(es, extra.es), extra2.es), extra3.es), landingText.es), extra4.es) },
+      pt: { translation: merge(merge(merge(merge(merge(merge(pt, extra.pt), extra2.pt), extra3.pt), landingText.pt), extra4.pt), extra5.pt) },
+      en: { translation: merge(merge(merge(merge(merge(merge(en, extra.en), extra2.en), extra3.en), landingText.en), extra4.en), extra5.en) },
+      es: { translation: merge(merge(merge(merge(merge(merge(es, extra.es), extra2.es), extra3.es), landingText.es), extra4.es), extra5.es) },
     },
     lng: savedLang,
     fallbackLng: ['en', 'es', 'pt'],

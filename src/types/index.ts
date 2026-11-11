@@ -10,6 +10,7 @@ export interface Ingredient {
   id: string;
   nome: LocalizedString;
   fornecedor?: string;
+  grupo?: string; // ex.: "Carnes y Proteínas" (organiza a lista e a lista de compras)
   unidadeCompra: UnitPurchase;
   precoCompra: number;
   // Quando unidadeCompra === 'pacote': o pacote contém `unidadesPorPacote`

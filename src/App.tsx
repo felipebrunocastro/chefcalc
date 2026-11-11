@@ -8,6 +8,7 @@ import { Mascot } from './components/ui/Mascot';
 // O app (painel) só é baixado quando o visitante entra; a landing fica leve.
 const AppArea = lazy(() => import('./AppShell').then(m => ({ default: m.AppArea })));
 const AcceptInvite = lazy(() => import('./AppShell').then(m => ({ default: m.AcceptInvite })));
+const AdminPage = lazy(() => import('./components/admin/AdminPage').then(m => ({ default: m.AdminPage })));
 
 function Splash() {
   return (
@@ -25,6 +26,11 @@ function Routes() {
   // Já autenticado em /entrar ou /cadastro → painel.
   useEffect(() => { if (!loading && user && isAuthRoute) navigate('/app', { replace: true }); }, [loading, user, isAuthRoute]);
 
+  // Painel administrativo: sem sessão mostra o login; a permissão é checada no banco.
+  if (path === '/admin') {
+    if (loading) return <Splash />;
+    return <Suspense fallback={<Splash />}>{user ? <AdminPage /> : <AppArea authMode="login" />}</Suspense>;
+  }
   if (path === '/convite') return <Suspense fallback={<Splash />}><AcceptInvite /></Suspense>;
   if (path === '/app' || isAuthRoute) {
     return (

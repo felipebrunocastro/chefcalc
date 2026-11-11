@@ -14,6 +14,7 @@ const PACKAGE_CONTENT_UNITS: PackageContentUnit[] = ['un', 'g', 'kg', 'lb', 'oz'
 interface FormState {
   nome: string;
   fornecedor: string;
+  grupo: string;
   unidadeCompra: UnitPurchase;
   precoCompra: number;
   unidadesPorPacote: number;
@@ -24,6 +25,7 @@ interface FormState {
 const EMPTY: FormState = {
   nome: '',
   fornecedor: '',
+  grupo: '',
   unidadeCompra: 'kg',
   precoCompra: 0,
   unidadesPorPacote: 1,
@@ -39,15 +41,30 @@ export function IngredientsPage() {
   const [editing, setEditing] = useState<Ingredient | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null);
+  const [group, setGroup] = useState('');
   const lang = i18n.language as Lang;
+  // Grupos na ordem em que aparecem (a lista vem por data de cadastro).
+  const groups = useMemo(() => [...new Set(ingredients.map(i => i.grupo?.trim() || ''))].filter(Boolean), [ingredients]);
 
   const filtered = useMemo(() => {
+    const q = search.toLowerCase();
     return ingredients.filter(i => {
+      if (group && (i.grupo?.trim() || '') !== group) return false;
       const name = i.nome[lang] || i.nome.pt;
-      return name.toLowerCase().includes(search.toLowerCase()) ||
-        (i.fornecedor || '').toLowerCase().includes(search.toLowerCase());
+      return name.toLowerCase().includes(q) ||
+        (i.fornecedor || '').toLowerCase().includes(q) ||
+        (i.grupo || '').toLowerCase().includes(q);
     });
-  }, [ingredients, search, lang]);
+  }, [ingredients, search, lang, group]);
+
+  // Seções por grupo (itens sem grupo no fim).
+  const sections = useMemo(() => {
+    const order = [...groups, ''];
+    return order
+      .map(g => ({ g, items: filtered.filter(i => (i.grupo?.trim() || '') === g) }))
+      .filter(s => s.items.length > 0);
+  }, [filtered, groups]);
+  const showHeaders = groups.length > 0;
 
   const openNew = () => {
     setEditing(null);
@@ -60,6 +77,7 @@ export function IngredientsPage() {
     setForm({
       nome: ing.nome[lang] || ing.nome.pt,
       fornecedor: ing.fornecedor || '',
+      grupo: ing.grupo || '',
       unidadeCompra: ing.unidadeCompra,
       precoCompra: ing.precoCompra,
       unidadesPorPacote: ing.unidadesPorPacote || 1,
@@ -83,6 +101,7 @@ export function IngredientsPage() {
       createdAt: editing?.createdAt || now,
       nome: { pt: form.nome, en: form.nome, es: form.nome },
       fornecedor: form.fornecedor,
+      grupo: form.grupo.trim() || undefined,
       unidadeCompra: form.unidadeCompra,
       precoCompra: form.precoCompra,
       unidadesPorPacote: form.unidadeCompra === 'pacote' ? form.unidadesPorPacote : undefined,
@@ -116,7 +135,7 @@ export function IngredientsPage() {
           <h2 className="text-sm font-semibold text-blue-800 mb-4 uppercase tracking-wide">
             {editing ? t('ingredients.edit') : t('ingredients.add')}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.name')}</label>
               <input
@@ -134,6 +153,18 @@ export function IngredientsPage() {
                 onChange={e => setForm(f => ({ ...f, fornecedor: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label htmlFor="ing-group" className="block text-xs font-medium text-gray-500 mb-1">{t('ingredients.group')}</label>
+              <input
+                id="ing-group"
+                list="ing-groups"
+                value={form.grupo}
+                onChange={e => setForm(f => ({ ...f, grupo: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={t('ingredients.groupPlaceholder')}
+              />
+              <datalist id="ing-groups">{groups.map(g => <option key={g} value={g} />)}</datalist>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
@@ -211,15 +242,24 @@ export function IngredientsPage() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={t('ingredients.search')}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        />
+      {/* Search + grupo */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('ingredients.search')}
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          />
+        </div>
+        {groups.length > 0 && (
+          <select value={group} onChange={e => setGroup(e.target.value)} aria-label={t('ingredients.group')}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="">{t('ingredients.allGroups')}</option>
+            {groups.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -242,15 +282,23 @@ export function IngredientsPage() {
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map(ing => (
+              {sections.map(({ g, items }) => (
+              <tbody key={g || '-'}>
+                {showHeaders && (
+                  <tr className="bg-blue-50/60 border-b border-blue-100">
+                    <th colSpan={6} scope="rowgroup" className="text-left px-4 py-2 text-xs font-semibold uppercase tracking-wide text-blue-900">
+                      {g || t('ingredients.noGroup')} <span className="font-normal normal-case text-blue-700/70">· {t('ingredients.itemsCount', { n: items.length })}</span>
+                    </th>
+                  </tr>
+                )}
+                {items.map(ing => (
                   <tr key={ing.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{ing.nome[lang] || ing.nome.pt}</td>
                     <td className="px-4 py-3 text-gray-500">{ing.fornecedor || '—'}</td>
                     <td className="px-4 py-3 text-center text-gray-600">
                       {t(`units.${ing.unidadeCompra}`)}{ing.unidadeCompra === 'pacote' && ing.unidadesPorPacote ? ` (${ing.unidadesPorPacote} ${t(`units.${ing.pacoteConteudoUnidade || 'un'}`)})` : ''}
                     </td>
-                    <td className="px-4 py-3 text-right font-mono text-gray-700">{formatCurrency(ing.precoCompra)}/{t(`units.${ing.unidadeCompra}`)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-gray-700">{ing.precoCompra > 0 ? <>{formatCurrency(ing.precoCompra)}/{t(`units.${ing.unidadeCompra}`)}</> : <span className="font-sans text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5">{t('ingredients.noPrice')}</span>}</td>
                     <td className="px-4 py-3 text-center text-gray-600">{ing.fatorCorrecao.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 justify-end">
@@ -261,12 +309,16 @@ export function IngredientsPage() {
                   </tr>
                 ))}
               </tbody>
+              ))}
             </table>
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {filtered.map(ing => (
+            {sections.map(({ g, items }) => (
+            <section key={g || '-'} className="space-y-3">
+            {showHeaders && <h2 className="text-xs font-semibold uppercase tracking-wide text-blue-900 pt-2">{g || t('ingredients.noGroup')} <span className="font-normal normal-case text-blue-700/70">· {t('ingredients.itemsCount', { n: items.length })}</span></h2>}
+            {items.map(ing => (
               <div key={ing.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -287,10 +339,12 @@ export function IngredientsPage() {
                   </div>
                   <div>
                     <div className="text-xs text-gray-400">{t('ingredients.purchasePrice')}</div>
-                    <div className="font-mono">{formatCurrency(ing.precoCompra)}</div>
+                    <div className="font-mono">{ing.precoCompra > 0 ? formatCurrency(ing.precoCompra) : <span className="font-sans text-xs text-amber-700">{t('ingredients.noPrice')}</span>}</div>
                   </div>
                 </div>
               </div>
+            ))}
+            </section>
             ))}
           </div>
         </>
