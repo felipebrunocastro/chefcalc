@@ -77,7 +77,7 @@ export function AdminPage() {
     { icon: Users, label: t('admin.kpi.users'), value: nf(T.users), hint: t('admin.kpi.confirmed', { n: nf(T.confirmedUsers) }) },
     { icon: UserPlus, label: t('admin.kpi.new7'), value: nf(T.newUsers7), hint: t('admin.kpi.new30', { n: nf(T.newUsers30) }) },
     { icon: Activity, label: t('admin.kpi.active7'), value: nf(T.active7), hint: t('admin.kpi.activeHint') },
-    { icon: Store, label: t('admin.kpi.restaurants'), value: nf(T.restaurants), hint: t('admin.kpi.withRestaurant', { n: nf(T.usersWithRestaurant) }) },
+    { icon: Store, label: t('admin.kpi.restaurants'), value: nf(T.restaurants), hint: t('admin.kpi.withRestaurant', { n: nf(T.usersWithRestaurant) }) + (T.deletedRestaurants ? ' · ' + t('admin.kpi.inTrash', { n: nf(T.deletedRestaurants) }) : '') },
     { icon: ClipboardList, label: t('admin.kpi.dishes'), value: nf(T.dishes), hint: t('admin.kpi.perRestaurant', { n: T.restaurants ? (T.dishes / T.restaurants).toLocaleString(locale, { maximumFractionDigits: 1 }) : '0' }) },
     { icon: Package, label: t('admin.kpi.ingredients'), value: nf(T.ingredients), hint: t('admin.kpi.perRestaurant', { n: T.restaurants ? (T.ingredients / T.restaurants).toLocaleString(locale, { maximumFractionDigits: 1 }) : '0' }) },
   ] : [];
@@ -236,7 +236,8 @@ function BizList({ u, date }: { u: AdminUser; date: (s: string | null) => string
       {u.restaurants.map(r => (
         <li key={r.id} className="flex flex-wrap gap-x-2">
           <Store size={14} className="text-blue-600 mt-0.5" />
-          <span className="font-medium text-navy-900">{r.name}</span>
+          <span className={`font-medium ${r.deletedAt ? 'text-slate-400 line-through' : 'text-navy-900'}`}>{r.name}</span>
+          {r.deletedAt && <span className="text-[10px] font-semibold uppercase bg-red-100 text-red-700 rounded px-1.5 py-0.5">{t('admin.inTrashBadge')}</span>}
           <span className="text-slate-600">{t('admin.bizLine', { dishes: r.dishes, ingredients: r.ingredients, members: r.members })}</span>
           <span className="text-slate-400">· {t('admin.createdOn', { date: date(r.createdAt) })}</span>
         </li>

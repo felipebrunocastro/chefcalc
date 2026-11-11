@@ -388,4 +388,79 @@ begin
   assert (a->>'dishCount')::int >= 1, 'A tem ficha';
 end $$;
 reset role;
+
+-- 008: lixeira de restaurantes ------------------------------------------------
+\ir ../migrations/008_restaurant_trash.sql
+\ir ../migrations/008_restaurant_trash.sql
+reset role;
+insert into public.restaurants (id, user_id, name) values ('dddddddd-0000-0000-0000-00000000000d', 'aaaaaaaa-0000-0000-0000-000000000001', 'Típico Sweet & Salt');
+insert into public.ingredients (id, user_id, restaurant_id, data) values ('ing-t1', 'aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-00000000000d', '{"id":"ing-t1"}');
+insert into public.dishes (id, user_id, restaurant_id, data) values ('dish-t1', 'aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-00000000000d', '{"id":"dish-t1","itens":[{"ingredienteId":"ing-t1"}]}');
+insert into public.restaurant_members (restaurant_id, email, role, status) values ('dddddddd-0000-0000-0000-00000000000d', 'b@test.com', 'operator', 'active');
+insert into public.cash_sessions (id, restaurant_id, op_date, opening_cash) values ('eeeeeeee-0000-0000-0000-00000000000e', 'dddddddd-0000-0000-0000-00000000000d', '2026-11-11', 50);
+set role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.email', 'a@test.com', false);
+insert into public.pos_sales (restaurant_id, session_id, op_date, code, client_token, items, subtotal, total)
+  values ('dddddddd-0000-0000-0000-00000000000d', 'eeeeeeee-0000-0000-0000-00000000000e', '2026-11-11', 'CX-T1', gen_random_uuid(), '[]', 12, 12);
+insert into public.cash_movements (restaurant_id, session_id, kind, amount, reason) values ('dddddddd-0000-0000-0000-00000000000d', 'eeeeeeee-0000-0000-0000-00000000000e', 'supply', 5, 'troco');
+do $$
+declare n int; ok boolean;
+begin
+  -- nome errado é recusado; delete direto não apaga nada
+  begin perform public.archive_restaurant('dddddddd-0000-0000-0000-00000000000d', 'Tipico Sweet & Salt'); assert false, 'nome sem acento não confirma';
+  exception when invalid_parameter_value then null; end;
+  delete from public.restaurants where id = 'dddddddd-0000-0000-0000-00000000000d';
+  get diagnostics n = row_count; assert n = 0, 'app não apaga restaurante direto';
+  -- outro usuário não exclui
+  perform set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-000000000002', false);
+  perform set_config('request.jwt.claim.email', 'b@test.com', false);
+  assert public.member_role('dddddddd-0000-0000-0000-00000000000d') = 'operator', 'operador ativo antes';
+  begin perform public.archive_restaurant('dddddddd-0000-0000-0000-00000000000d', 'Típico Sweet & Salt'); assert false, 'só o dono exclui';
+  exception when insufficient_privilege then null; end;
+  -- dono exclui com o nome exato (espaços nas pontas tolerados)
+  perform set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+  perform set_config('request.jwt.claim.email', 'a@test.com', false);
+  perform public.archive_restaurant('dddddddd-0000-0000-0000-00000000000d', '  Típico Sweet & Salt ');
+  select count(*) into n from public.restaurants where id = 'dddddddd-0000-0000-0000-00000000000d' and deleted_at is not null;
+  assert n = 1, 'dono ainda vê o restaurante na lixeira';
+  assert not public.owns_restaurant('dddddddd-0000-0000-0000-00000000000d'), 'excluído não é editável';
+  select count(*) into n from public.dishes where restaurant_id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 0, 'fichas ocultas enquanto excluído';
+  update public.restaurants set name = 'X' where id = 'dddddddd-0000-0000-0000-00000000000d';
+  get diagnostics n = row_count; assert n = 0, 'excluído não pode ser alterado';
+  update public.restaurants set deleted_at = null where id = 'dddddddd-0000-0000-0000-00000000000d';
+  get diagnostics n = row_count; assert n = 0, 'só reativa pela função';
+  -- operador perde acesso
+  perform set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-000000000002', false);
+  perform set_config('request.jwt.claim.email', 'b@test.com', false);
+  assert public.member_role('dddddddd-0000-0000-0000-00000000000d') is null, 'operador sem acesso ao excluído';
+  select count(*) into n from public.restaurants where id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 0, 'operador não vê';
+  select count(*) into n from public.cash_sessions where restaurant_id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 0, 'operador não vê o caixa';
+  -- dono reativa: tudo volta
+  perform set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-000000000001', false);
+  perform set_config('request.jwt.claim.email', 'a@test.com', false);
+  assert public.restore_restaurant('dddddddd-0000-0000-0000-00000000000d'), 'reativado';
+  select count(*) into n from public.dishes where restaurant_id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 1, 'fichas voltam';
+  select count(*) into n from public.pos_sales where restaurant_id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 1, 'vendas voltam';
+  assert public.owns_restaurant('dddddddd-0000-0000-0000-00000000000d'), 'editável de novo';
+  perform public.archive_restaurant('dddddddd-0000-0000-0000-00000000000d', 'Típico Sweet & Salt');
+end $$;
+-- 91 dias depois: apagado de vez com tudo (inclusive caixa e vendas)
+reset role;
+update public.restaurants set deleted_at = now() - interval '91 days' where id = 'dddddddd-0000-0000-0000-00000000000d';
+set role authenticated;
+do $$
+declare n int;
+begin
+  assert public.restore_restaurant('dddddddd-0000-0000-0000-00000000000d') = false, 'não reativa após 90 dias';
+end $$;
+reset role;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.restaurants where id = 'dddddddd-0000-0000-0000-00000000000d'; assert n = 0, 'purgado';
+  select count(*) into n from public.dishes where id = 'dish-t1'; assert n = 0, 'fichas purgadas';
+  select count(*) into n from public.pos_sales where code = 'CX-T1'; assert n = 0, 'vendas purgadas';
+  select count(*) into n from public.cash_sessions where id = 'eeeeeeee-0000-0000-0000-00000000000e'; assert n = 0, 'caixa purgado';
+end $$;
 select 'MIGRATION TESTS PASSED' as result;

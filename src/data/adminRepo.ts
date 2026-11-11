@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 // Painel administrativo (migração 007). A permissão é verificada no banco:
 // admin_overview() recusa qualquer conta que não esteja em app_admins.
 
-export interface AdminRestaurant { id: string; name: string; createdAt: string; dishes: number; ingredients: number; members: number }
+export interface AdminRestaurant { id: string; name: string; createdAt: string; deletedAt?: string | null; dishes: number; ingredients: number; members: number }
 export interface AdminUser {
   id: string; email: string; createdAt: string; lastSignInAt: string | null; confirmed: boolean; isAdmin: boolean;
   restaurantCount: number; dishCount: number; ingredientCount: number; sharedCount: number;
@@ -13,7 +13,7 @@ export interface AdminOverview {
   generatedAt: string;
   totals: {
     users: number; confirmedUsers: number; newUsers7: number; newUsers30: number; active7: number;
-    usersWithRestaurant: number; restaurants: number; dishes: number; ingredients: number;
+    usersWithRestaurant: number; restaurants: number; deletedRestaurants?: number; dishes: number; ingredients: number;
   };
   users: AdminUser[];
 }

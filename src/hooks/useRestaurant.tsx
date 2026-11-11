@@ -7,6 +7,8 @@ import type { Restaurant } from '../types';
 
 interface RestaurantContextValue {
   restaurants: Restaurant[];
+  deletedRestaurants: Restaurant[];
+  restore: (id: string) => Promise<boolean>;
   dishCounts: Record<string, number>;
   loading: boolean;
   error: string | null;
@@ -15,7 +17,7 @@ interface RestaurantContextValue {
   select: (id: string | null) => void;
   create: (input: { name: string; currency: Currency; logo?: string | null }) => Promise<Restaurant>;
   update: (id: string, patch: Partial<Pick<Restaurant, 'name' | 'currency' | 'logo' | 'budget' | 'profile' | 'goals'>>) => Promise<void>;
-  remove: (id: string) => Promise<void>;
+  remove: (id: string, confirmName: string) => Promise<void>;
   reload: () => Promise<void>;
   /** Telas de edição marcam alterações não salvas aqui. */
   setDirty: (dirty: boolean) => void;
@@ -34,6 +36,7 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [deletedRestaurants, setDeleted] = useState<Restaurant[]>([]);
   const [dishCounts, setDishCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +48,9 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     if (!user) { setRestaurants([]); setLoading(false); return; }
     try {
-      const [list, counts] = await Promise.all([repo.getRestaurants(), repo.getDishCounts()]);
+      const [list, counts, deleted] = await Promise.all([repo.getRestaurants(), repo.getDishCounts(), repo.getDeletedRestaurants()]);
       setRestaurants(list);
+      setDeleted(deleted);
       setDishCounts(counts);
       setError(null);
     } catch (e) {
@@ -124,16 +128,22 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     setRestaurants(rs => rs.map(r => (r.id === id ? { ...r, ...patch } : r)));
   }, []);
 
-  const remove = useCallback(async (id: string) => {
-    await repo.deleteRestaurant(id);
+  const remove = useCallback(async (id: string, confirmName: string) => {
+    await repo.deleteRestaurant(id, confirmName);
     if (currentId === id) doSelect(null);
     await reload();
   }, [currentId, doSelect, reload]);
 
+  const restore = useCallback(async (id: string) => {
+    const ok = await repo.restoreRestaurant(id);
+    await reload();
+    return ok;
+  }, [reload]);
+
   const setDirty = useCallback((d: boolean) => { dirtyRef.current = d; }, []);
 
   const value: RestaurantContextValue = {
-    restaurants, dishCounts, loading, error, current, select, create, update, remove, reload, setDirty, guard, revoked, checkAccess,
+    restaurants, deletedRestaurants, restore, dishCounts, loading, error, current, select, create, update, remove, reload, setDirty, guard, revoked, checkAccess,
   };
 
   return (

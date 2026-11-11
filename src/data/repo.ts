@@ -18,6 +18,7 @@ interface RestaurantRow {
   id: string; user_id?: string; name: string; currency: string; logo: string | null;
   budget: BudgetItem[] | null; created_at: string;
   profile?: RestaurantProfile | null; goals?: GoalsSettings | null; // colunas da migração 004
+  deleted_at?: string | null; // migração 008
 }
 
 const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaurant => ({
@@ -30,6 +31,7 @@ const toRestaurant = (r: RestaurantRow, role: RestaurantRole = 'owner'): Restaur
   createdAt: r.created_at,
   profile: r.profile && typeof r.profile === 'object' ? r.profile : {},
   goals: r.goals && typeof r.goals === 'object' ? r.goals : {},
+  deletedAt: r.deleted_at ?? null,
 });
 
 // Restaurantes próprios + os compartilhados comigo (o RLS devolve os dois).
@@ -52,7 +54,8 @@ export async function getRestaurants(): Promise<Restaurant[]> {
       roles.set(r.restaurant_id, r.role); units.set(r.restaurant_id, r.unit ?? null);
     }
   }
-  return (data ?? []).map(r => {
+  // Excluídos (lixeira) ficam fora da lista principal: ver getDeletedRestaurants.
+  return (data ?? []).filter(r => !(r as RestaurantRow).deleted_at).map(r => {
     const row = r as RestaurantRow;
     const role = row.user_id === uid ? 'owner' : roles.get(row.id) ?? 'viewer';
     return { ...toRestaurant(row, role), memberUnit: role === 'owner' ? null : units.get(row.id) ?? null };
@@ -106,9 +109,25 @@ export async function updateRestaurant(id: string, patch: Partial<Pick<Restauran
   if (error) throw error;
 }
 
-export async function deleteRestaurant(id: string): Promise<void> {
-  const { error } = await supabase.from('restaurants').delete().eq('id', id);
+// Excluir = mover para a lixeira por 90 dias. O banco confere o nome digitado e se é o dono.
+export async function deleteRestaurant(id: string, confirmName: string): Promise<void> {
+  const { error } = await supabase.rpc('archive_restaurant', { rid: id, confirm_name: confirmName });
   if (error) throw error;
+}
+
+// Restaurantes próprios na lixeira. Tolerante: antes da migração 008 não há coluna deleted_at.
+export async function getDeletedRestaurants(): Promise<Restaurant[]> {
+  const uid = await currentUserId();
+  const { data, error } = await supabase.from('restaurants').select('*').eq('user_id', uid).not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map(r => toRestaurant(r as RestaurantRow));
+}
+
+// Reativar dentro de 90 dias. false = prazo encerrado (já apagado definitivamente).
+export async function restoreRestaurant(id: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('restore_restaurant', { rid: id });
+  if (error) throw error;
+  return data === true;
 }
 
 // Contagem de fichas por restaurante (para os cards do painel).

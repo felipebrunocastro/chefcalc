@@ -5,14 +5,14 @@ import { isAppAdmin } from '../../data/adminRepo';
 import { navigate } from '../../lib/router';
 import { useRestaurant } from '../../hooks/useRestaurant';
 import { Mascot } from '../ui/Mascot';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { DeleteRestaurantDialog, DeletedRestaurants } from './RestaurantTrash';
 import { RestaurantForm } from './RestaurantForm';
 import { RestaurantLogo } from './RestaurantLogo';
 import type { Restaurant } from '../../types';
 
 export function RestaurantsPanel() {
   const { t } = useTranslation();
-  const { restaurants, dishCounts, loading, error, select, create, update, remove } = useRestaurant();
+  const { restaurants, deletedRestaurants, restore, dishCounts, loading, error, select, create, update, remove } = useRestaurant();
   const [form, setForm] = useState<{ edit?: Restaurant } | null>(null);
   const [toDelete, setToDelete] = useState<Restaurant | null>(null);
   const [admin, setAdmin] = useState(false);
@@ -99,6 +99,8 @@ export function RestaurantsPanel() {
         </>
       )}
 
+      {!loading && <DeletedRestaurants list={deletedRestaurants} onRestore={restore} />}
+
       {form && (
         <RestaurantForm
           initial={form.edit}
@@ -112,10 +114,10 @@ export function RestaurantsPanel() {
         />
       )}
       {toDelete && (
-        <ConfirmDialog
-          message={t('restaurants.confirmDelete')}
+        <DeleteRestaurantDialog
+          restaurant={toDelete}
           onCancel={() => setToDelete(null)}
-          onConfirm={async () => { await remove(toDelete.id); setToDelete(null); }}
+          onConfirm={async typed => { await remove(toDelete.id, typed); setToDelete(null); }}
         />
       )}
     </div>

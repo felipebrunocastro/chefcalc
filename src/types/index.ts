@@ -139,6 +139,7 @@ export interface Restaurant {
   profile: RestaurantProfile;
   goals: GoalsSettings;          // papel do usuário logado neste restaurante
   memberUnit?: string | null;    // unidade autorizada (acesso restrito por unidade)
+  deletedAt?: string | null;     // excluído (lixeira de 90 dias; migração 008)
 }
 
 export type RestaurantRole = 'owner' | 'viewer' | 'finance' | 'operator';
